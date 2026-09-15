@@ -8,7 +8,7 @@
 **Models 1414 + 1473 · RGB · Depth · IR · 4-channel audio · Tilt · LED · Multi-Kinect**
 
 ![Version](https://img.shields.io/badge/version-1.0-2f81f7)
-![Windows](https://img.shields.io/badge/Windows-10 | 11%20x64-0078d4)
+![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078d4)
 ![Linux](https://img.shields.io/badge/Linux-x86--64-fcc624)
 ![Kinect](https://img.shields.io/badge/Kinect-1414%20%7C%201473-22c55e)
 ![Audio](https://img.shields.io/badge/audio-4ch%20%4016kHz-8b5cf6)
