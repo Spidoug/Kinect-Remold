@@ -6,7 +6,7 @@ Native drivers are built from the source in this repository. The source archive 
 
 Requirements:
 
-- Windows 10 | 11 x64;
+- Windows 11 x64;
 - Visual Studio/MSBuild with the current Microsoft desktop driver-development components (bootstrapped automatically when absent);
 - Windows SDK/Driver Kit 10.0.28000 (bootstrapped automatically when absent);
 - PowerShell 5.1+.
