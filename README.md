@@ -112,7 +112,7 @@ The camera boundary remains sensor-native. RGB demosaic, IR unpacking and metric
 
 ### Windows 11 x64
 
-Requirements: Windows 10 | 11 x64, Windows PowerShell 5.1+ and Internet access for the first build. `BUILD.cmd` discovers an existing native toolchain when present; otherwise it applies the Microsoft WDK WinGet configuration bundled with this V1 source tree, installing the current Visual Studio Community driver-development components plus Windows SDK/WDK 10.0.28000. WinGet/Visual Studio may request administrator approval during installation. If JDK 17+ is absent, the Studio build downloads, verifies and uses a portable Microsoft OpenJDK 17 automatically.
+Requirements: Windows 11 x64, Windows PowerShell 5.1+ and Internet access for the first build. `BUILD.cmd` discovers an existing native toolchain when present; otherwise it applies the Microsoft WDK WinGet configuration bundled with this V1 source tree, installing the current Visual Studio Community driver-development components plus Windows SDK/WDK 10.0.28000. WinGet/Visual Studio may request administrator approval during installation. If JDK 17+ is absent, the Studio build downloads, verifies and uses a portable Microsoft OpenJDK 17 automatically.
 
 1. Extract or clone the repository into a normal writable folder.
 2. Run:
