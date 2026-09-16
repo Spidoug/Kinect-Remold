@@ -8,7 +8,7 @@
 **Models 1414 + 1473 · RGB · Depth · IR · 4-channel audio · Tilt · LED · Multi-Kinect**
 
 ![Version](https://img.shields.io/badge/version-1.0-2f81f7)
-![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078d4)
+![Windows](https://img.shields.io/badge/Windows-11%20x64-0078d4)
 ![Linux](https://img.shields.io/badge/Linux-x86--64-fcc624)
 ![Kinect](https://img.shields.io/badge/Kinect-1414%20%7C%201473-22c55e)
 ![Audio](https://img.shields.io/badge/audio-4ch%20%4016kHz-8b5cf6)
@@ -110,7 +110,7 @@ The camera boundary remains sensor-native. RGB demosaic, IR unpacking and metric
 
 ## Quick start
 
-### Windows 10 | 11 x64
+### Windows 11 x64
 
 Requirements: Windows 10 | 11 x64, Windows PowerShell 5.1+ and Internet access for the first build. `BUILD.cmd` discovers an existing native toolchain when present; otherwise it applies the Microsoft WDK WinGet configuration bundled with this V1 source tree, installing the current Visual Studio Community driver-development components plus Windows SDK/WDK 10.0.28000. WinGet/Visual Studio may request administrator approval during installation. If JDK 17+ is absent, the Studio build downloads, verifies and uses a portable Microsoft OpenJDK 17 automatically.
 
