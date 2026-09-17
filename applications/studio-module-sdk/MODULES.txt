@@ -1,0 +1,8 @@
+SynKinect Studio Module API
+Software version: 1
+
+Place trusted module JAR files in this directory.
+Each JAR must provide a ServiceLoader entry for:
+org.synkinect.studio.api.SynKinectStudioModule
+
+The public compile-time API is SynKinectStudio-module-api.jar in the runtime lib directory.

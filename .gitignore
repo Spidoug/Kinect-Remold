@@ -1,0 +1,39 @@
+﻿# Native driver outputs are generated from source.
+drivers/windows/binaries/
+drivers/windows/source/logs/
+drivers/windows/source/components/*/dist/
+drivers/windows/source/source/setup/x64/
+drivers/windows/source/source/setup/Release/
+
+# Native compilation intermediates.
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/Makefile
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.exe
+*.sys
+*.cat
+*.pdb
+
+# Java/Processing transient outputs.
+applications/binaries/
+*.class
+applications/processing/SynKinectStudio/build/
+
+# Logs and temporary files.
+logs/
+*.log
+*.tmp
+*.bak
+*~
+
+# Python cache files.
+**/__pycache__/
+*.pyc
+

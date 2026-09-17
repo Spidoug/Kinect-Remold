@@ -1,0 +1,25 @@
+# Native drivers and runtimes — Version 1
+
+The repository contains the native driver/runtime source for Windows and Linux.
+
+```text
+drivers/
+├── windows/
+│   ├── BUILD.cmd
+│   └── source/
+├── linux/
+│   ├── BUILD.sh
+│   └── source/
+└── sdk/
+    ├── include/
+    └── src/
+```
+
+Compiled native executables, catalogs and shared libraries are generated outputs. They are not committed or shipped as inputs to another build.
+
+- Windows builder output: `drivers/windows/binaries/`
+- Linux builder output: `drivers/linux/dist/<architecture>/`
+
+Generated output locations are ignored by `.gitignore` and recreated from source.
+
+See [native driver build](../docs/BUILD-DRIVERS.md) and [architecture](../docs/ARCHITECTURE.md).
