@@ -1,5 +1,5 @@
 # Snapshot of Microsoft's Windows-driver-samples WDK WinGet configuration for
-# the V1 build. Source: microsoft/Windows-driver-samples, _wdk_utils/winget/configs.
+# the Version 1 build. Source: microsoft/Windows-driver-samples, _wdk_utils/winget/configs.
 # yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
 properties:
   resources:

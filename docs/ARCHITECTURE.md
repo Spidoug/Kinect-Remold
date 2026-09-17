@@ -67,7 +67,7 @@ Revision-specific preparation, endpoint discovery and USB encoding stay entirely
    └── UAC runtime 02BB/02C3 ── snd-usb-audio + ALSA ── 4ch S32LE 16 kHz
 ```
 
-The Linux camera process enumerates every Kinect camera interface with libusb. Each physical USB topology path receives a stable V1 ID and its own Unix socket under `/run/kinect360-remold/devices/`. `/run/kinect360-remold/devices.tsv` is the atomic discovery manifest consumed by the Studio. Each device maintains independent RGB/IR/depth state and permits multiple clients on its own endpoint.
+The Linux camera process enumerates every Kinect camera interface with libusb. Each physical USB topology path receives a stable Remold ID and its own Unix socket under `/run/kinect360-remold/devices/`. `/run/kinect360-remold/devices.tsv` is the atomic discovery manifest consumed by the Studio. Each device maintains independent RGB/IR/depth state and permits multiple clients on its own endpoint.
 
 ## Video arbitration
 

@@ -7,7 +7,7 @@ set "REMOLD_BUILD=%REMOLD_ROOT%build\Build.ps1"
 set "RC=0"
 
 echo ============================================================
-echo  Kinect Xbox 360 Remold v1.0 - Native Windows build
+echo  Kinect Xbox 360 Remold - Native Windows build
 echo ============================================================
 echo Project: "%REMOLD_ROOT%"
 echo.
@@ -63,5 +63,5 @@ if "%RC%"=="0" (
 )
 echo.
 echo This window will not close automatically.
-if not defined REMOLD_CALLER pause
+if not defined REMOLD_CALLER if not "%REMOLD_NO_PAUSE%"=="1" pause
 exit /b %RC%

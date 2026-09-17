@@ -97,9 +97,9 @@ bool Discover1473ControlPipes(PhysicalNuiSession& session) {
     // Do not assume that the active alternate setting or endpoint numbers are
     // already what the firmware uses. The Microsoft Kinect Audio Array Control
     // package and our fallback both expose MI_00 through WinUSB, but the only
-    // authoritative source is the live interface descriptor. This also catches
-    // partial 02BB enumerations instead of converting them into ERROR_GEN_FAILURE
-    // on the first command.
+    // authoritative source is the live interface descriptor. This also detects
+    // partial 02BB enumerations while preserving the underlying device state
+    // for the first command.
     for (UCHAR alt = 0; alt < 16; ++alt) {
         USB_INTERFACE_DESCRIPTOR descriptor{};
         if (!api.QueryInterfaceSettings(session.usb, alt, &descriptor)) continue;
@@ -159,7 +159,7 @@ bool Configure1473ControlTimeouts(PhysicalNuiSession& session) {
     // Keep WinUSB's PIPE_TRANSFER_TIMEOUT at its default (0). A non-zero pipe
     // policy makes the USB stack itself cancel requests and report
     // ERROR_SEM_TIMEOUT (121), which is exactly the failure seen on some 1473
-    // controllers. The broker owns the timeout with OVERLAPPED I/O instead, so
+    // controllers. The broker owns the timeout with OVERLAPPED I/O, so
     // a timeout cancels only the current request and the interface can be
     // reopened cleanly without leaving a host-controller timer armed.
     return true;
@@ -389,9 +389,9 @@ HRESULT ReadAltAck(PhysicalNuiSession& session, uint32_t expectedTag) {
 
     // The alternate 1473 camera firmware uses tags as a sequencing hint, but
     // the device protocol does not require rejecting a reply
-    // solely because its tag differs. After a reset/re-enumeration a valid ACK can
-    // carry the previous tag. Treat magic+status as authoritative; a failed transaction gets one bounded
-    // pipe recovery and a failed retry invalidates the physical session.
+    // solely because its tag differs. After reset/re-enumeration, a valid ACK may
+    // carry an earlier tag. Treat magic+status as authoritative; a failed transaction
+    // gets one bounded pipe recovery and a failed retry invalidates the physical session.
     (void)expectedTag;
     return S_OK;
 }

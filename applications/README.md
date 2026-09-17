@@ -1,6 +1,6 @@
 # Applications
 
-V1 has one editable application: **SynKinect Studio**.
+Version 1 has one editable application: **SynKinect Studio**.
 
 ```text
 applications/
@@ -24,7 +24,7 @@ The Studio build bootstraps the pinned Java graphics dependencies itself when re
 
 Every downloaded dependency is checked against the repository-pinned SHA-256 before compilation or staging.
 
-`SynKinectStudio.pde` and the other `.pde` tabs contain the five modules shown in one window: 3D Scanner, Acoustic Scanner, Microphones, Surveillance and Interactivity.
+`SynKinectStudio.pde` and the other `.pde` tabs contain the five built-in modules shown in one window; additional modules are loaded from the module API: 3D Scanner, Acoustic Scanner, Microphones, Surveillance and Interactivity.
 
 ## Assets
 

@@ -1,10 +1,9 @@
-# Native driver outputs are generated from source.
+﻿# Native driver outputs are generated from source.
 drivers/windows/binaries/
 drivers/windows/source/logs/
 drivers/windows/source/components/*/dist/
 drivers/windows/source/source/setup/x64/
 drivers/windows/source/source/setup/Release/
-drivers/linux/packages/output/
 
 # Native compilation intermediates.
 **/CMakeFiles/
@@ -21,8 +20,6 @@ drivers/linux/packages/output/
 *.sys
 *.cat
 *.pdb
-*.deb
-*.rpm
 
 # Java/Processing transient outputs.
 applications/binaries/
@@ -36,13 +33,7 @@ logs/
 *.bak
 *~
 
-# Repository-local dependency/build cache.
-.cache/
-
 # Python cache files.
 **/__pycache__/
 *.pyc
 
-# Linux firmware/download cache is local build state.
-drivers/linux/cache/
-drivers/linux/source/cache/

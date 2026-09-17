@@ -7,7 +7,7 @@
 
 **Models 1414 + 1473 · RGB · Depth · IR · 4-channel audio · Tilt · LED · Multi-Kinect**
 
-![Version](https://img.shields.io/badge/version-1.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1-2f81f7)
 ![Windows](https://img.shields.io/badge/Windows-11%20x64-0078d4)
 ![Linux](https://img.shields.io/badge/Linux-x86--64-fcc624)
 ![Kinect](https://img.shields.io/badge/Kinect-1414%20%7C%201473-22c55e)
@@ -25,7 +25,7 @@ Kinect Xbox 360 Remold gives the original Kinect for Xbox 360 a current, source-
 
 ## SynKinect Studio
 
-One application, five hardware-focused modules.
+One application with five built-in hardware modules and a loadable module API.
 
 <table>
 <tr>
@@ -61,7 +61,7 @@ One application, five hardware-focused modules.
 
 ### Main capabilities
 
-| Area | V1 capability |
+| Area | Version 1 capability |
 | --- | --- |
 | Camera | Raw RGB Bayer, packed IR10 and packed Depth11 transport |
 | 3D | Per-device calibration, pose refinement, loop closure, 2× multi-frame depth fusion, HQ TSDF |
@@ -139,6 +139,8 @@ bash BUILD.sh
 sudo bash drivers/linux/INSTALL.sh --direct
 ```
 
+Run the Linux entry points with `bash` when using an archive tool that does not preserve Unix execute permissions. The official ZIP stores Linux launchers as executable.
+
 `BUILD.sh` builds SynKinect Studio and the Linux native runtime. It downloads pinned Studio dependencies, uses an existing JDK 17+ or obtains Microsoft OpenJDK 17, installs missing native build dependencies on supported distributions, obtains Kinect Runtime v1.8/UACFirmware 01.02.709.00 and compiles the runtime. Build output is written to `logs/`; when started from an interactive terminal the build window waits for Enter on success or failure so compiler errors remain visible. Use `--no-pause` for automation. `INSTALL.sh --direct` installs runtime dependencies and the completed distribution. The interactive `drivers/linux/INSTALL.sh` menu invokes the same driver build automatically when required.
 
 The Linux system camera is published persistently through `v4l2loopback`: Remold attaches the producer before consumers enumerate the device, validates the stable `Kinect Xbox 360 Camera` label and records the actual node in `/run/kinect360-remold/v4l2-device`. `/dev/video42` is only a preference, so an existing webcam cannot make the Kinect camera disappear. RGB/IR/HQ handoff and Depth stream lifetime are managed by the camera session.
@@ -148,7 +150,7 @@ The Kinect audio runtime uses the pinned firmware image and startup sequence. Du
 ## Source layout
 
 ```text
-Kinect-Xbox-360-Remold-1.0/
+Kinect-Xbox-360-Remold/
 ├── BUILD.cmd
 ├── BUILD.sh
 ├── README.md
@@ -165,11 +167,11 @@ Kinect-Xbox-360-Remold-1.0/
 └── licenses/                           # third-party license texts
 ```
 
-Generated trees such as `applications/binaries/`, `drivers/windows/binaries/`, `drivers/linux/dist/`, `.cache/` and package outputs are intentionally ignored.
+Generated trees such as `applications/binaries/`, `drivers/windows/binaries/`, `drivers/linux/dist/` and package outputs are intentionally ignored. Build caches live outside the source tree in the operating system user cache directory.
 
 ## Design principles
 
-- **One V1 architecture** — one ScannerPort protocol and one runtime path.
+- **One Version 1 architecture** — one ScannerPort protocol and one runtime path.
 - **Hardware ownership is explicit** — opening or closing a Studio module does not blindly reset healthy physical transports.
 - **1414 and 1473 share one logical API** — model-specific USB behavior remains inside the native backend.
 - **Raw sensor data stays raw at the transport boundary** — conversion is owned by Studio or an explicit OS/network adapter.
@@ -195,6 +197,6 @@ The project builds against the Processing, JogAmp/JOGL/GlueGen and Microsoft com
 ---
 
 <div align="center">
-  <b>Kinect Xbox 360 Remold V1.0</b><br>
+  <b>Kinect Xbox 360 Remold</b><br>
   Reviving Kinect 360 hardware with a current source-driven runtime and Studio.
 </div>

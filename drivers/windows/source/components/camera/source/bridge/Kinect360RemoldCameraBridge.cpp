@@ -461,10 +461,9 @@ private:
             std::lock_guard<std::mutex> guard(m_clientsLock);
             if (m_stopping.load(std::memory_order_acquire)) return false;
 
-            // A Studio tab switch creates a new pipe before Java/Windows has
-            // necessarily released the superseded RandomAccessFile handle. Treat the
-            // newest session from the same process as authoritative instead of
-            // letting a stale RGB/IR owner block the next module forever.
+            // A Studio tab switch can create a new pipe before Java/Windows releases
+            // the superseded RandomAccessFile handle. The newest session from the same
+            // process is authoritative, preventing a stale RGB/IR owner from blocking it.
             uint32_t aggregate = 0;
             for (const auto& existing : m_clients) {
                 if (client->pid != 0 && existing->pid == client->pid) continue;
@@ -747,7 +746,7 @@ void BayerToNv12(const uint8_t* bayer, int srcWidth, int srcHeight,
 // Produce a VGA Bayer frame without demosaicing. The odd/even source coordinate
 // is deliberately preserved for every destination pixel, so the GRBG phase stays
 // valid while the 1280x1024 sensor image is center-cropped vertically to 960 rows.
-// This lets SynKinect Studio own RGB reconstruction instead of the USB bridge.
+// SynKinect Studio owns RGB reconstruction; the USB bridge publishes sensor-native data.
 void DownsampleHqBayerToVga(const uint8_t* source, uint8_t* destination) {
     for (uint32_t y = 0; y < kHeight; ++y) {
         const uint32_t sy = 32u + 4u * (y / 2u) + (y & 1u);
@@ -786,8 +785,8 @@ public:
         if (raw.size() != m_rawBytes) return;
         {
             std::lock_guard<std::mutex> guard(m_lock);
-            // Latest-frame semantics: overwrite the pending slot instead of
-            // letting a slow CPU conversion build an unbounded queue.
+            // Latest-frame semantics keep only the most recent pending slot,
+            // preventing slow CPU conversion from building an unbounded queue.
             std::vector<uint8_t>& target = m_writeA ? m_rawA : m_rawB;
             std::memcpy(target.data(), raw.data(), m_rawBytes);
             if (m_writeA) m_captureTickA = captureTickMs; else m_captureTickB = captureTickMs;
@@ -870,7 +869,7 @@ private:
                 }
                 case ScannerPort::StreamMode::Infrared:
                     // Keep the native packed 10-bit 640x488 payload intact. Cropping
-                    // and unpacking now belong to SynKinect Studio.
+                    // and unpacking belong to SynKinect Studio.
                     m_scannerPort.Publish(m_mode, ScannerPort::PixelFormat::IrRaw10Packed,
                                           m_work.data(), m_work.size(), 0u, m_workCaptureTickMs);
                     break;
@@ -1087,7 +1086,7 @@ std::vector<CameraInterfaceInfo> EnumerateCameraInterfaces() {
         if (!SetupDiGetDeviceInterfaceDetailW(info, &iface, detail, needed, nullptr, &dev)) continue;
         // Prefer the physical USB location path for identity. Kinect 1473
         // cameras advertise the placeholder serial 0000000000000000, so hashing
-        // the instance ID can collide across sensors or change after PnP
+        // the instance ID can collide across sensors or differ after PnP
         // re-enumeration. LocationPaths stays unique per attached USB port and
         // matches the installer's IgnoreHWSerNum policy for revision 02.05.
         std::wstring identity = FirstDeviceLocationPath(info, dev);
@@ -1135,7 +1134,7 @@ public:
             // Prepare the post-firmware audio control function before opening
             // a 1473 camera. During boot
             // that sibling can appear shortly after 02AE, so allow the bounded
-            // re-enumeration window instead of doing a single racy attempt.
+            // re-enumeration window with bounded retries.
             bool prepared = false;
             for (unsigned attempt = 0; attempt < 20 && g_run.load(); ++attempt) {
                 if (PrepareCameraControl(deviceId)) { prepared = true; break; }
@@ -1449,10 +1448,9 @@ private:
 
     HRESULT ConfigureDepthPath() {
         std::lock_guard<std::mutex> guard(m_controlLock);
-        // Every depth endpoint session starts from a known OFF state.  The old
-        // recovery path trusted m_projectorOn, so a timed-out session could leave
-        // software believing the depth engine was already started and the next
-        // retry would never perform a real OFF -> ON re-arm.
+        // Every depth endpoint session starts from a known OFF state. Clearing the
+        // local projector state guarantees a real OFF -> ON sequence after timeout or
+        // device reopen.
         HRESULT hr = WriteRegisterUnlocked(0x105, 0x00);
         if (SUCCEEDED(hr)) {
             hr = WriteRegisterUnlocked(0x06, 0x00);
@@ -1688,8 +1686,8 @@ private:
             if (!WinUsb_GetOverlappedResult(m_usb, &slot.ov, &ignored, FALSE)) {
                 const DWORD e = GetLastError(); slot.pending = false;
                 if (e == ERROR_OPERATION_ABORTED && !SessionRunning()) break;
-                // Resubmit transfers after every non-disconnect
-                // completion error instead of gradually draining the queue.
+                // Resubmit transfers after every non-disconnect completion error
+                // to keep the active queue fully populated.
                 wchar_t message[160]{};
                 swprintf_s(message, L"Video ISO completion error %lu on slot %lu; resubmitting.", e, next);
                 Log(message);
@@ -2092,9 +2090,9 @@ int RunBridgeLoop() {
         }
 
         // Reconcile incrementally. Never stop every Kinect
-        // when any one device path changed; a single 1473 re-enumeration could
-        // interrupt all connected sensors. Only removed/changed nodes (or a node
-        // whose primary role changed) are restarted.
+        // when any one device path is refreshed; a single 1473 re-enumeration must not
+        // interrupt all connected sensors. Only removed/refreshed nodes (or a node
+        // whose primary role differs) are restarted.
         for (auto it = nodes.begin(); it != nodes.end();) {
             const auto wanted = desired.find(it->first);
             const bool shouldPublish = (!primaryId.empty() && it->first == primaryId);

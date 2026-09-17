@@ -1,4 +1,4 @@
-# Repository helper scripts — V1
+# Repository helper scripts — Version 1
 
 ## Native drivers
 

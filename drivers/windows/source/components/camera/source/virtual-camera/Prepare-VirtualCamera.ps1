@@ -47,7 +47,7 @@ foreach($f in @($generatorH,$generatorCpp,$streamCpp,$sourceCpp,$vcamH,$activate
     Require (Test-Path -LiteralPath $f -PathType Leaf) "Required virtual-camera source was not found: $f"
 }
 
-# Pin protection: abort instead of silently adapting a structurally different sample.
+# Pinned source validation requires the expected Microsoft sample structure.
 $stream=[IO.File]::ReadAllText($streamCpp)
 Require ($stream.Contains('const uint32_t NUM_MEDIATYPES = 2;')) 'Pinned Microsoft SimpleMediaStream layout changed (media-type count marker missing).'
 Require ($stream.Contains('MFVideoFormat_NV12')) 'Pinned Microsoft sample must expose NV12.'
@@ -169,13 +169,13 @@ $packagesConfig=Join-Path $SampleRoot 'packages.config'
 if(Test-Path -LiteralPath $packagesConfig -PathType Leaf){
     $packagesText=[IO.File]::ReadAllText($packagesConfig)
     # The project consumes the platform projection shipped by the selected Windows SDK.
-    # Remove every NuGet C++/WinRT package entry so one build cannot load two header versions.
+    # Keep a single C++/WinRT header source in the generated project.
     $packagesText=[regex]::Replace($packagesText,'(?im)^\s*<package\s+id="Microsoft\.Windows\.CppWinRT"[^>]*/>\s*\r?\n?','')
     Require ($packagesText -notmatch 'Microsoft\.Windows\.CppWinRT') 'C++/WinRT NuGet package entry was not removed.'
     Write-Utf8Bom $packagesConfig $packagesText
 }
 
-# Remove every C++/WinRT NuGet import/check from the pinned project.
+# Keep the pinned project free of C++/WinRT NuGet imports and checks.
 # The pinned upstream vcxproj contains both 3.x and 2.x imports, and
 # the package checks may use SolutionDir or project-relative paths.  Match the
 # complete XML elements rather than a particular path layout so the rewrite is

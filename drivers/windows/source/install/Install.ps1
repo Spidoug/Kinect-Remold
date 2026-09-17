@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param([string]$DistributionRoot='', [switch]$Simple)
 $ErrorActionPreference='Stop'
 $Root=if([string]::IsNullOrWhiteSpace($DistributionRoot)){Split-Path -Parent $PSScriptRoot}else{[IO.Path]::GetFullPath($DistributionRoot)}
@@ -200,14 +200,14 @@ function Initialize-1473UsbIdentityAndResumePolicy {
     # with more than one 1473 (or after reconnect/re-enumeration) that placeholder
     # can create unstable or colliding identities. Scope only the known 1473
     # camera revision (VID 045E, PID 02AE, bcdDevice 02.05) to its physical USB
-    # port instead. 1414 cameras use another revision and keep their real serial.
+    # port. 1414 cameras use another revision and keep their real serial.
     $changed=$false
     if(Set-UsbDeviceFlagByte '045E02AE0205' 'IgnoreHWSerNum' 1){$changed=$true}
     if(Set-UsbDeviceFlagByte '045E02AE0205' 'ResetOnResume' 1){$changed=$true}
 
     # 02C2 is the 1473 internal hub (bcdDevice 00.01). A reset on resume is a
     # targeted recovery policy for that hub only; no global USB selective-
-    # suspend or power-management policy is changed.
+    # suspend or power-management transitions.
     if(Set-UsbDeviceFlagByte '045E02C20001' 'ResetOnResume' 1){$changed=$true}
 
     $script:Usb1473PolicyChanged=$changed
@@ -1071,7 +1071,8 @@ try{
         throw ("Installation is incomplete because required components failed or were blocked by Windows: {0}" -f (($failedStates|ForEach-Object{$_.Key}) -join ', '))
     }
     Write-Host ''
-    Write-Host ("{0} v{1} INSTALLATION COMPLETE" -f $ProductName,$Product.Version) -ForegroundColor Green
+    Write-Host ("{0} INSTALLATION COMPLETE" -f $ProductName) -ForegroundColor Green
+    Write-Host ("Software version: {0}" -f $Product.Version) -ForegroundColor Green
     Write-Host 'No Windows restart is requested by the Remold installer.' -ForegroundColor Green
     if(!$Simple){Write-Host 'Technical utility: tools\Kinect360RemoldNui.exe status|broker-status|tilt|led'}
     [Environment]::ExitCode=0

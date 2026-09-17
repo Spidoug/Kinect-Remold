@@ -260,12 +260,12 @@ DWORD BindHardwareId(const std::wstring& hardwareId, const std::wstring& infPath
                     hardwareId.c_str(), installed ? 0u : 1u, attempt, presentNow);
                 return ERROR_SUCCESS;
             }
-            // If the replacement function is present but not started yet, keep
+            // If the target function is present but not started yet, keep
             // settling. If it is absent, periodically ask PnP to rescan.
             if ((poll + 1) % 6 == 0) RequestSynchronousPnPRescan();
         }
-        // A replacement devnode did not become healthy in this settle window;
-        // retry the actual bind against whatever instance is now present.
+        // The target devnode did not become healthy in this settle window;
+        // retry the bind against the instance present after enumeration.
     }
 
     std::fwprintf(stderr,
@@ -550,7 +550,7 @@ DWORD ChangeDeviceStateByHardwareId(const std::wstring& hardwareId, DWORD stateC
             !SetupDiCallClassInstaller(DIF_PROPERTYCHANGE, set, &data)) {
             const DWORD e = GetLastError();
             // A device can legitimately disappear between enumeration and the
-            // property-change request while PnP rebuilds the USB tree. Treat that
+            // PnP restart request while the USB tree is rebuilding. Treat that
             // specific race as transient; a fresh pass below decides presence.
             if (e == ERROR_NO_SUCH_DEVINST || e == ERROR_NOT_FOUND) continue;
             if (firstError == ERROR_SUCCESS) firstError = e;
@@ -567,7 +567,7 @@ DWORD ChangeDeviceStateByHardwareId(const std::wstring& hardwareId, DWORD stateC
 DWORD RestartDevicesByHardwareId(const std::wstring& hardwareId, unsigned* restarted) {
     if (restarted) *restarted = 0;
 
-    // Prefer a property-change restart: it asks PnP to stop and rebuild the
+    // Prefer DICS_PROPCHANGE: it asks PnP to stop and rebuild the
     // device stack without requiring a full Windows reboot.
     unsigned changed = 0;
     DWORD e = ChangeDeviceStateByHardwareId(hardwareId, DICS_PROPCHANGE, &changed);
@@ -699,7 +699,7 @@ DWORD EnsureRoot(const std::wstring& hardwareId, const std::wstring& infPath, co
         // The package was accepted, but Windows could not restart the root
         // device/service stack in this boot (typically because an older broker
         // process was still holding the service image). Surface this as a
-        // controlled reboot requirement instead of generic ERROR_NOT_READY.
+        // controlled reboot requirement with a dedicated result code.
         std::wprintf(L"REBOOT_REQUIRED_ROOT hardware-id=%ls\n", hardwareId.c_str());
         return ERROR_SUCCESS;
     }

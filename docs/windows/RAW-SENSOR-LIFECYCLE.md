@@ -1,6 +1,6 @@
 # Raw sensor transport and reopen-safe lifecycle
 
-SynKinect Studio 1.0 keeps the physical Kinect USB session independent from the lifetime of individual Studio modules.
+SynKinect Studio keeps the physical Kinect USB session independent from the lifetime of individual Studio modules.
 
 ## ScannerPort payloads on Windows
 
@@ -27,7 +27,7 @@ Camera ISO work uses eight transfers with 32 packets each. The first `WinUsb_Rea
 
 ScannerPort `Reply` is 68 bytes and every consumer must read all 68 bytes. Partial reply reads leave bytes in the named pipe and can corrupt the next RGB/IR frame header after a module open/close/reopen sequence.
 
-## V1 ABI boundary
+## Version 1 ABI boundary
 
 Protocol version 1 accepts only the four sensor-native ScannerPort payloads documented above. NV12 RGB, Gray16 IR and unpacked Depth are not ScannerPort formats and have no parser or negotiation path in SynKinect Studio. A mismatched pixel format, payload length, magic or version is a protocol error, not a signal to select an older decoder.
 

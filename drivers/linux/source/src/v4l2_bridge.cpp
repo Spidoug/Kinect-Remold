@@ -171,7 +171,7 @@ int open_v4l2(const std::string& device) {
   (void)xioctl(fd, VIDIOC_S_PARM, &parm);
 
   // v4l2loopback exclusive_caps=1 initially advertises only OUTPUT. Keeping
-  // this producer open is what changes the node to CAPTURE for desktop/webcam
+  // the producer open exposes the node as CAPTURE for desktop/webcam
   // applications. A consumer is NOT required here. Prime one neutral frame when
   // the loopback accepts write() immediately, but EAGAIN must never make us drop
   // the producer and hide the virtual camera again.
@@ -201,16 +201,38 @@ int subscribe_rgb(bool high_quality) {
 
 void resize_rgb24(const std::vector<uint8_t>& source, int source_width, int source_height,
                   int target_width, int target_height, std::vector<uint8_t>& target) {
-  target.resize(static_cast<size_t>(target_width) * target_height * 3u);
+  if (source_width <= 0 || source_height <= 0 || target_width <= 0 || target_height <= 0) {
+    target.clear();
+    return;
+  }
+
+  const std::size_t source_width_u = static_cast<std::size_t>(source_width);
+  const std::size_t target_width_u = static_cast<std::size_t>(target_width);
+  const std::size_t target_height_u = static_cast<std::size_t>(target_height);
+  const std::size_t required_source = source_width_u * static_cast<std::size_t>(source_height) * 3u;
+  if (source.size() < required_source) {
+    target.clear();
+    return;
+  }
+
+  target.resize(target_width_u * target_height_u * 3u);
   for (int y = 0; y < target_height; ++y) {
-    const int sy = std::min(source_height - 1, static_cast<int>((static_cast<int64_t>(y) * source_height) / target_height));
+    const int sy = std::min(
+        source_height - 1,
+        static_cast<int>((static_cast<int64_t>(y) * source_height) / target_height));
     for (int x = 0; x < target_width; ++x) {
-      const int sx = std::min(source_width - 1, static_cast<int>((static_cast<int64_t>(x) * source_width) / target_width));
-      const size_t sp = (static_cast<size_t>(sy) * source_width + sx) * 3u;
-      const size_t dp = (static_cast<size_t>(y) * target_width + x) * 3u;
-      target[dp] = source[sp];
-      target[dp + 1] = source[sp + 1];
-      target[dp + 2] = source[sp + 2];
+      const int sx = std::min(
+          source_width - 1,
+          static_cast<int>((static_cast<int64_t>(x) * source_width) / target_width));
+      const std::size_t source_pixel = static_cast<std::size_t>(sy) * source_width_u +
+                                       static_cast<std::size_t>(sx);
+      const std::size_t target_pixel = static_cast<std::size_t>(y) * target_width_u +
+                                       static_cast<std::size_t>(x);
+      const std::size_t source_offset = source_pixel * 3u;
+      const std::size_t target_offset = target_pixel * 3u;
+      target[target_offset] = source[source_offset];
+      target[target_offset + 1] = source[source_offset + 1];
+      target[target_offset + 2] = source[source_offset + 2];
     }
   }
 }

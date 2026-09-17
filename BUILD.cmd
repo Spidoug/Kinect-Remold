@@ -2,19 +2,23 @@
 setlocal EnableExtensions
 set "REMOLD_BUILD_PARENT=1"
 set "ROOT=%~dp0"
+set "REMOLD_VERSION="
+if exist "%ROOT%VERSION" set /p REMOLD_VERSION=<"%ROOT%VERSION"
+if not "%REMOLD_VERSION%"=="1" (echo ERROR: VERSION must be 1.& exit /b 2)
 set "STUDIO=%ROOT%scripts\windows\BUILD-STUDIO.cmd"
 set "TARGET=%ROOT%drivers\windows\BUILD.cmd"
 set "RC=0"
 
-title Kinect Xbox 360 Remold v1.0 - BUILD
+title Kinect Xbox 360 Remold - BUILD
 color 07
 
 echo ============================================================
-echo  Kinect Xbox 360 Remold v1.0
+echo  Kinect Xbox 360 Remold
+echo  Software version: %REMOLD_VERSION%
 echo  BUILD - SynKinect Studio + Windows Driver and Runtime
 echo ============================================================
 echo.
-echo This launcher ALWAYS keeps the window open at the end.
+echo Interactive builds keep the window open at the end.
 echo.
 
 if not exist "%STUDIO%" (
@@ -55,5 +59,5 @@ if "%RC%"=="0" (
 )
 echo ============================================================
 echo.
-pause
+if not "%REMOLD_NO_PAUSE%"=="1" pause
 exit /b %RC%

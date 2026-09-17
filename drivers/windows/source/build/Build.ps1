@@ -17,7 +17,8 @@ $transcript=$false;$failed=$false
 try{
     Start-Transcript -LiteralPath $LogPath -Force|Out-Null;$transcript=$true
     Write-Host '============================================================' -ForegroundColor Cyan
-    Write-Host (" {0} - v{1}" -f $Product.Name,$Product.Version) -ForegroundColor Cyan
+    Write-Host (" {0}" -f $Product.Name) -ForegroundColor Cyan
+    Write-Host (" Software version: {0}" -f $Product.Version) -ForegroundColor Cyan
     Write-Host (" by {0} - {1}" -f $Product.Author,$Product.Handle) -ForegroundColor Cyan
     Write-Host '============================================================' -ForegroundColor Cyan
     $developmentCert=Get-OrCreateDevelopmentCertificate $Product
@@ -57,7 +58,7 @@ try{
     foreach($file in @('Kinect.ps1','Install.ps1','Uninstall.ps1','Common.ps1')){Copy-Item -LiteralPath (Join-Path $Root "install\$file") -Destination (Join-Path $Dist "system\$file") -Force}
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Product.psd1') -Destination (Join-Path $Dist 'system\Product.psd1') -Force
     Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $Root) 'README.md') -Destination (Join-Path $Dist 'README.txt') -Force
-    @($Product.Name,"v$($Product.Version)","by $($Product.Author)",$Product.Handle) | Set-Content -LiteralPath (Join-Path $Dist 'VERSION.txt') -Encoding ASCII
+    @($Product.Name,"Software version: $($Product.Version)","by $($Product.Author)",$Product.Handle) | Set-Content -LiteralPath (Join-Path $Dist 'VERSION.txt') -Encoding ASCII
 
     # The development signer covers the PnP catalogs. Camera and Motor keep
     # Microsoft's inbox winusb.sys; NUI Audio uses no authored kernel binary.
@@ -88,7 +89,7 @@ try{
         '.'=@('KINECT.cmd','Kinect360RemoldDevelopment.cer')
     }
     foreach($folder in $expected.Keys){foreach($file in $expected[$folder]){Require-File (Join-Path (Join-Path $Dist $folder) $file) "$folder\$file"}}
-    Write-Host '';Write-Host ("{0} v{1} BUILD COMPLETE" -f $Product.Name,$Product.Version) -ForegroundColor Green
+    Write-Host '';Write-Host ("{0} BUILD COMPLETE" -f $Product.Name) -ForegroundColor Green;Write-Host ("Software version: {0}" -f $Product.Version) -ForegroundColor Green
     Write-Host "Output: $Dist" -ForegroundColor Green
     Write-Host 'Open ..\binaries\KINECT.cmd and choose Install / Reinstall. The installer trusts the packaged development certificate before PnP staging.' -ForegroundColor Yellow
 }catch{

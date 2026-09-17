@@ -463,7 +463,7 @@ boolean queueScanFrame(RgbdFramePair pair) {
   if (!studio.scannerState.reconstructionRun || pair == null || pair.depth == null) return false;
   synchronized (studio.scannerState.reconstructionQueueLock) {
     // Reconstruction is latency-sensitive. When capture outruns fusion, retain
-    // the newest bounded window instead of building seconds of stale FIFO lag.
+    // a bounded window containing the most recent frames to keep latency low.
     while(studio.scannerState.reconstructionQueue.size()>=studio.scannerState.config.reconstructionQueueFrames){
       studio.scannerState.reconstructionQueue.removeFirst();
       studio.scannerState.reconstructionQueueOverflows++;
@@ -704,7 +704,7 @@ class AppConfig {
 
   // RGB/depth registration. The intrinsic/extrinsic defaults are a representative
   // Kinect v1 stereo calibration profile; every value remains externalized so a
-  // per-device calibration can replace it without source changes.
+  // per-device calibration can provide device-specific values from configuration.
   float rgbFx = 529.215081f, rgbFy = 525.563936f, rgbCx = 328.942720f, rgbCy = 267.480682f;
   float depthK1 = -0.263864f, depthK2 = 0.999668f, depthP1 = -0.000762f, depthP2 = 0.005035f, depthK3 = -1.305362f;
   float rgbK1 = 0.207966f, rgbK2 = -0.586138f, rgbP1 = 0.000722f, rgbP2 = 0.001048f, rgbK3 = 0.498570f;
@@ -1183,7 +1183,7 @@ class PointCloudBuildStats {
 class ExportSpace {
   PVector position(PVector p) { return new PVector(p.x, -p.y, p.z); }
   Triangle3D triangle(Triangle3D t) {
-    // Y reflection changes handedness; swapping B/C preserves outward winding.
+    // Y reflection reverses handedness; swapping B/C preserves outward winding.
     return new Triangle3D(position(t.a), position(t.c), position(t.b), t.ca, t.cc, t.cb);
   }
 }
@@ -1787,7 +1787,7 @@ class KinectSource {
     }
     deviceConnected = lastAnyArrivalMs > 0 && now - lastAnyArrivalMs <= config.connectionStaleTimeoutMs;
     // A pipe can remain open while its server-side session is no longer producing frames.
-    // Force a fresh subscribe instead of leaving Processing attached to a zombie session.
+    // Start a fresh subscription whenever the active session is no longer usable.
     long anchor = lastAnyArrivalMs > 0 ? lastAnyArrivalMs : connectedSinceMs;
     if (portReady && anchor > 0 && now - anchor > config.connectionStaleTimeoutMs) requestReconnect("stale-session");
   }
@@ -1796,7 +1796,7 @@ class KinectSource {
     boolean changed=hqColorRequested!=requested;
     hqColorRequested=requested;
     if(!requested)synchronized(frameLock){hqRgbHistory.clear();}
-    // Re-negotiate only when the desired stream set actually changes. The Scanner
+    // Re-negotiate only when the desired stream set differs from the active set. The Scanner
     // requests HQ before starting its transport, so pressing SCAN never causes this.
     if(changed&&running){
       boolean sessionHasHq=(activeSessionMask&studio.services.scannerProtocol.STREAM_RGB_HQ)!=0;
@@ -2265,7 +2265,7 @@ class Mesh3D {
   }
 
   // Mesh vertex colors use ARGB. A zero alpha channel means the triangle
-  // has no captured color, so the current theme shade is used instead.
+  // has no captured color, so the current theme shade is used.
   int renderColor(int c,int fallback){ return ((c>>>24)&255)==0 ? fallback : c; }
 
 }
@@ -2778,7 +2778,7 @@ class ScannerProtocol {
 
 // Processing merges PDE tabs into the sketch class. ScannerProtocol is therefore
 // an inner type and must contain constants only; executable protocol helpers
-// remain sketch methods in this same tab instead of illegal class methods.
+// remain sketch methods in this tab because Processing does not allow them inside that class.
 int scannerMaskForMode(int mode) {
   return mode == studio.services.scannerProtocol.MODE_RGB ? studio.services.scannerProtocol.STREAM_RGB
        : mode == studio.services.scannerProtocol.MODE_DEPTH ? studio.services.scannerProtocol.STREAM_DEPTH
@@ -3515,7 +3515,7 @@ class Scanner3DViewport {
 
     // The 3D environment is an off-screen PGraphics instance. Rendering it as
     // one image guarantees that geometry cannot escape the reconstruction card
-    // and cannot change the main Studio camera/projection used by other tabs.
+    // and does not affect the main Studio camera/projection used by other tabs.
     image(buffer,x,y,w,h);
   }
 

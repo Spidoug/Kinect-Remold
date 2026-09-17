@@ -108,7 +108,7 @@ main(){
 
   if ! lsmod 2>/dev/null | awk '{print $1}' | grep -qx v4l2loopback; then
     # Remold owns module creation when v4l2loopback is not already in use. Do
-    # not rely on boot-time video_nr=42 policy: select a collision-free node now
+    # not rely on boot-time video_nr=42 policy: select a collision-free node at runtime
     # and create it with the stable label/exclusive-caps interface in one step.
     local target="$preferred"
     if (( third_party != 0 )); then target="$(find_free_video_node "$preferred" || true)"; fi
@@ -120,7 +120,7 @@ main(){
       log 'no free /dev/videoN slot found for fixed module creation; trying dynamic allocation'
     fi
   else
-    # Module parameters cannot be changed in place. If no loopback device is in
+    # Module parameters are immutable while loaded. If no loopback device is in
     # use, reload once so the Remold label/exclusive-caps policy is deterministic.
     local have_other_loopback=0
     for node in /dev/video*; do

@@ -1,4 +1,4 @@
 Kinect Xbox 360 Remold Driver
-Driver version: v1.0
+Driver version: 1
 Package revision: 1.0.0.0
-Date: 2026-08-29
+Date: 2026-09-17

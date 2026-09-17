@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [string]$JdkHome = ''
 )
@@ -36,7 +36,14 @@ function Find-JdkBin([string]$ExplicitHome) {
     if ($ExplicitHome) { Add-Candidate $candidates (Join-Path $ExplicitHome 'bin') }
     if ($env:JDK_HOME) { Add-Candidate $candidates (Join-Path $env:JDK_HOME 'bin') }
     if ($env:JAVA_HOME) { Add-Candidate $candidates (Join-Path $env:JAVA_HOME 'bin') }
-    $cachedJdkRoot = Join-Path $RepoRoot '.cache\studio\jdk'
+    $localCacheRoot = $env:LOCALAPPDATA
+    if ([string]::IsNullOrWhiteSpace($localCacheRoot)) {
+        $localCacheRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+    }
+    if ([string]::IsNullOrWhiteSpace($localCacheRoot)) {
+        $localCacheRoot = [IO.Path]::GetTempPath()
+    }
+    $cachedJdkRoot = Join-Path $localCacheRoot 'Kinect360Remold\Cache\studio\jdk' 
     if (Test-Path -LiteralPath $cachedJdkRoot -PathType Container) {
         Get-ChildItem -LiteralPath $cachedJdkRoot -Directory -Filter 'microsoft-jdk-*' -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending |
@@ -190,32 +197,8 @@ try {
     Write-Host "Representative application: $($jar.Name)"
     Write-Host ''
 
-    $classPath = Join-Path $LibRoot '*'
-    Write-Host ("Analyzing {0} with jdeps..." -f $jar.Name)
-
-    $output = @(& $jdeps --multi-release $feature --ignore-missing-deps --recursive --print-module-deps --class-path $classPath $jar.FullName 2>&1)
-    $jdepsCode = $LASTEXITCODE
-    if ($jdepsCode -ne 0) {
-        throw "jdeps failed for $($jar.Name) with exit code $jdepsCode.`n$($output -join [Environment]::NewLine)"
-    }
-
-    $line = $output |
-        ForEach-Object { $_.ToString().Trim() } |
-        Where-Object { $_ -match '^[A-Za-z0-9_.]+(?:,[A-Za-z0-9_.]+)*$' } |
-        Select-Object -Last 1
-
-    if (!$line) {
-        throw "jdeps did not return a Java module list for $($jar.Name). Output:`n$($output -join [Environment]::NewLine)"
-    }
-
-    $modules = @(
-        $line -split ',' |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ } |
-            Sort-Object -Unique
-    )
-
-    Write-Host ("Modules: {0}" -f ($modules -join ',')) -ForegroundColor Green
+    $modules = 'ALL-MODULE-PATH'
+    Write-Host 'Runtime modules: ALL-MODULE-PATH' -ForegroundColor Green
     Write-Host ''
 
     if (Test-Path -LiteralPath $RuntimeRoot) {
@@ -226,7 +209,7 @@ try {
     $compression = if ($feature -ge 21) { 'zip-6' } else { '2' }
     Write-Host "Creating runtime with jlink (compression=$compression)..."
 
-    $jlinkOutput = @(& $jlink --add-modules ($modules -join ',') --strip-debug --no-header-files --no-man-pages "--compress=$compression" --output $RuntimeRoot 2>&1)
+    $jlinkOutput = @(& $jlink --add-modules $modules --strip-debug --no-header-files --no-man-pages "--compress=$compression" --output $RuntimeRoot 2>&1)
     $jlinkCode = $LASTEXITCODE
     if ($jlinkCode -ne 0) {
         throw "jlink failed with exit code $jlinkCode.`n$($jlinkOutput -join [Environment]::NewLine)"
@@ -245,7 +228,7 @@ try {
     Write-Host ''
     Write-Host "Portable runtime created: $RuntimeRoot" -ForegroundColor Green
     Write-Host "Size: $sizeMb MB" -ForegroundColor Green
-    Write-Host 'SynKinect Studio uses this single runtime for all five tabs.' -ForegroundColor Green
+    Write-Host 'SynKinect Studio uses this runtime for built-in and external modules.' -ForegroundColor Green
     exit 0
 }
 catch {

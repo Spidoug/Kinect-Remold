@@ -418,7 +418,7 @@ class StudioController {
   StudioController(StudioServices services){
     this.services=services;
     config=new StudioShellConfig(services.configRules);
-    modules=new StudioModuleBase[]{new ScannerStudioModule(this),new AcousticStudioModule(this),new MicrophoneStudioModule(this),new SurveillanceStudioModule(this),new InteractivityStudioModule(this)};
+    modules=buildStudioModules(this);
   }
   final Object lifecycleLock=new Object();
   final java.util.concurrent.locks.ReentrantLock operationLock=new java.util.concurrent.locks.ReentrantLock();
@@ -612,7 +612,7 @@ class StudioController {
   void mouseWheel(processing.event.MouseEvent event){if(activeTab>=0&&isReady(activeTab))modules[activeTab].mouseWheelModule(event);}
   void keyPressed(){
     if(key=='0'){goHome();return;}
-    if(key>='1'&&key<='5'){select(key-'1',false);return;}
+    if(key>='1'&&key<='9'){int shortcut=key-'1';if(shortcut<modules.length){select(shortcut,false);return;}}
     if(activeTab>=0&&isReady(activeTab))modules[activeTab].keyPressedModule();
   }
 
@@ -741,6 +741,7 @@ class StudioController {
       for(int i=modules.length-1;i>=0;i--){
         try{if(modules[i].ownsResources())modules[i].disposeModule();}catch(Exception ignored){}finally{modules[i].markDisposed();}
       }
+      closeExternalStudioModuleLoaders(modules);
     }catch(InterruptedException e){Thread.currentThread().interrupt();}
     finally{if(operationHeld)operationLock.unlock();}
   }
@@ -770,7 +771,13 @@ void drawStudioHome(){
   fill(0xFF778897);textAlign(CENTER,TOP);studioText(STUDIO_FONT_TINY,false);text(studio.i18n.tr("home.shortcuts"),width/2,studio.contentHeight-24);textAlign(LEFT,BASELINE);
 }
 String homeModuleDescription(int i){
-  if(i==STUDIO_TAB_SCANNER)return studio.i18n.tr("home.scanner");if(i==STUDIO_TAB_ACOUSTIC)return studio.i18n.tr("home.acoustic");if(i==STUDIO_TAB_MICROPHONES)return studio.i18n.tr("home.microphones");if(i==STUDIO_TAB_SURVEILLANCE)return studio.i18n.tr("home.surveillance");return studio.i18n.tr("home.interactivity");
+  if(i==STUDIO_TAB_SCANNER)return studio.i18n.tr("home.scanner");
+  if(i==STUDIO_TAB_ACOUSTIC)return studio.i18n.tr("home.acoustic");
+  if(i==STUDIO_TAB_MICROPHONES)return studio.i18n.tr("home.microphones");
+  if(i==STUDIO_TAB_SURVEILLANCE)return studio.i18n.tr("home.surveillance");
+  if(i==STUDIO_TAB_INTERACTIVITY)return studio.i18n.tr("home.interactivity");
+  if(i>=0&&i<studio.modules.length)return externalModuleDescription(studio.modules[i]);
+  return "";
 }
 int homeCardAt(float mx,float my){float cw=homeContentWidth(),cx=(width-cw)/2;int cols=homeModuleCols();float gap=homeModuleGap(),cardW=homeModuleCardW(),cardH=homeModuleCardH(),startY=homeModuleStartY();for(int i=0;i<studio.modules.length;i++){int row=i/cols,col=i%cols;float x=cx+col*(cardW+gap),y=startY+row*(cardH+gap);if(mx>=x&&mx<=x+cardW&&my>=y&&my<=y+cardH)return i;}return -1;}
 
@@ -853,7 +860,7 @@ String safeStudioMessage(Throwable e){String m=e==null?null:e.getMessage();retur
 
 // One parsing policy for every Studio module. Invalid or missing values always
 // resolve to the caller-provided default and bounded values are clamped here.
-// File I/O errors are reported once here instead of being reimplemented by each module.
+// File I/O error reporting is centralized here for all modules.
 class ConfigRules {
   Properties load(File file,String scope){
     Properties p=new Properties();
@@ -965,7 +972,7 @@ class StudioShellI18n extends ModuleI18n {
 float studioUiScale(){
   float sx=max(1,width)/1280.0f,sy=max(1,studio.contentHeight)/752.0f;
   // A resizable desktop app must be allowed to become genuinely compact.
-  // Keep the scale floor low enough that controls shrink instead of overflowing.
+  // Keep the scale floor low enough that controls shrink before they overflow.
   return constrain(min(sx,sy),0.72f,1.12f);
 }
 float responsiveFontSize(float base){

@@ -2,15 +2,21 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PROJECT_VERSION="$(tr -d '\r\n' < "$ROOT/VERSION")"
+[[ "$PROJECT_VERSION" == 1 ]] || { echo "VERSION must be 1 for this source tree." >&2; exit 2; }
 SKETCH="$ROOT/applications/processing/SynKinectStudio"
+MODULE_SDK="$ROOT/applications/studio-module-sdk"
+MODULE_API_SRC="$MODULE_SDK/src/main/java"
 TEMPLATES="$ROOT/applications/runtime-templates"
 LINUX_APP="$ROOT/applications/binaries/linux-x64"
 WINDOWS_APP="$ROOT/applications/binaries/windows-x64"
 LINUX_LIB="$LINUX_APP/lib"
 WINDOWS_LIB="$WINDOWS_APP/lib"
-CACHE="$ROOT/.cache/studio"
+LINUX_MODULES="$LINUX_APP/modules"
+WINDOWS_MODULES="$WINDOWS_APP/modules"
+CACHE="${XDG_CACHE_HOME:-${HOME:-/tmp}/.cache}/kinect360-remold/studio"
 
-mkdir -p "$LINUX_LIB" "$WINDOWS_LIB" "$CACHE"
+mkdir -p "$LINUX_LIB" "$WINDOWS_LIB" "$LINUX_MODULES" "$WINDOWS_MODULES" "$CACHE"
 
 for tool in bash awk grep sed find sort sha256sum tar; do
   command -v "$tool" >/dev/null 2>&1 || { echo "Required build tool not found: $tool" >&2; exit 2; }
@@ -193,6 +199,8 @@ install -m 0644 "$TEMPLATES/windows-x64/SynKinectStudio.cmd" "$WINDOWS_APP/SynKi
 install -m 0755 "$TEMPLATES/linux-x64/SynKinectStudio.sh" "$LINUX_APP/SynKinectStudio.sh"
 install -m 0644 "$TEMPLATES/linux-x64/SynKinectStudio.desktop" "$LINUX_APP/SynKinectStudio.desktop"
 install -m 0644 "$SKETCH/data/synkinect-studio-icon.png" "$LINUX_APP/synkinect-studio-icon.png"
+install -m 0644 "$MODULE_SDK/MODULES.txt" "$LINUX_MODULES/README.txt"
+install -m 0644 "$MODULE_SDK/MODULES.txt" "$WINDOWS_MODULES/README.txt"
 
 JDK_HOME_RESOLVED="$(resolve_jdk)"
 JAVAC="$JDK_HOME_RESOLVED/bin/javac"
@@ -204,7 +212,21 @@ echo "JDK $feature+: READY [$JDK_HOME_RESOLVED]"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
-mkdir -p "$WORK/classes"
+mkdir -p "$WORK/classes" "$WORK/module-api-classes"
+mapfile -t MODULE_API_SOURCES < <(find "$MODULE_API_SRC" -type f -name '*.java' -print | sort)
+((${#MODULE_API_SOURCES[@]} > 0)) || { echo "SynKinect Studio Module API sources were not found: $MODULE_API_SRC" >&2; exit 1; }
+"$JAVAC" -encoding UTF-8 --release 17 -Xlint:all -cp "$LINUX_LIB/core-4.4.6.jar" -d "$WORK/module-api-classes" "${MODULE_API_SOURCES[@]}"
+cat > "$WORK/MODULE-API.MF" <<MANIFEST
+Manifest-Version: 1.0
+Implementation-Title: SynKinect Studio Module API
+Implementation-Version: 1
+Automatic-Module-Name: org.synkinect.studio.moduleapi
+MANIFEST
+"$JAR" --create --file "$WORK/SynKinectStudio-module-api.jar" --manifest "$WORK/MODULE-API.MF" --date=2026-01-01T00:00:00Z -C "$WORK/module-api-classes" .
+install -m 0644 "$WORK/SynKinectStudio-module-api.jar" "$LINUX_LIB/SynKinectStudio-module-api.jar"
+install -m 0644 "$WORK/SynKinectStudio-module-api.jar" "$WINDOWS_LIB/SynKinectStudio-module-api.jar"
+echo 'SynKinect Studio Module API: READY'
+echo 'Module API software version: 1'
 JAVA_SRC="$WORK/SynKinectStudio.java"
 {
   printf '%s\n' 'import processing.core.*;' 'import processing.data.*;' 'import processing.event.*;' 'import processing.opengl.*;'
@@ -215,14 +237,14 @@ JAVA_SRC="$WORK/SynKinectStudio.java"
   printf '%s\n' 'public static void main(String[] args){PApplet.main(SynKinectStudio.class.getName());}' '}'
 } > "$JAVA_SRC"
 
-CP="$LINUX_LIB/core-4.4.6.jar:$LINUX_LIB/jogl-all-2.5.0.jar:$LINUX_LIB/gluegen-rt-2.5.0.jar"
+CP="$LINUX_LIB/core-4.4.6.jar:$LINUX_LIB/jogl-all-2.5.0.jar:$LINUX_LIB/gluegen-rt-2.5.0.jar:$WORK/SynKinectStudio-module-api.jar"
 "$JAVAC" -encoding UTF-8 --release 17 -Xlint:all -cp "$CP" -d "$WORK/classes" "$JAVA_SRC"
 cp "$SKETCH/data/synkinect-studio-icon.png" "$WORK/classes/synkinect-studio-icon.png"
 cat > "$WORK/MANIFEST.MF" <<MANIFEST
 Manifest-Version: 1.0
 Main-Class: SynKinectStudio
 Implementation-Title: SynKinect Studio
-Implementation-Version: 1.0
+Implementation-Version: $PROJECT_VERSION
 MANIFEST
 "$JAR" --create --file "$WORK/SynKinectStudio.jar" --manifest "$WORK/MANIFEST.MF" --date=2026-01-01T00:00:00Z -C "$WORK/classes" .
 
@@ -236,12 +258,7 @@ linux_hash="$(sha256_file "$LINUX_APP/lib/SynKinectStudio.jar")"
 windows_hash="$(sha256_file "$WINDOWS_APP/lib/SynKinectStudio.jar")"
 [[ "$linux_hash" == "$windows_hash" ]] || { echo 'Package validation failed: platform Studio JAR hashes differ.' >&2; exit 1; }
 
-# Build the self-contained Linux Java runtime after the final application JAR
-# exists. This removes the machine-wide Java requirement from the finished app.
-jdeps_output="$("$JDEPS" --multi-release "$feature" --ignore-missing-deps --recursive --print-module-deps --class-path "$LINUX_LIB/*" "$LINUX_LIB/SynKinectStudio.jar" 2>&1)"
-modules="$(printf '%s\n' "$jdeps_output" | awk '/^[A-Za-z0-9_.]+(,[A-Za-z0-9_.]+)*$/{line=$0} END{print line}')"
-[[ -n "$modules" ]] || { printf '%s\n' "$jdeps_output" >&2; echo 'jdeps did not return the Java module list required by SynKinect Studio.' >&2; exit 1; }
-
+modules='ALL-MODULE-PATH'
 rm -rf "$LINUX_APP/java"
 if (( feature >= 21 )); then
   "$JLINK" --add-modules "$modules" --strip-debug --no-header-files --no-man-pages --compress=zip-6 --output "$LINUX_APP/java"
@@ -253,5 +270,6 @@ fi
 [[ -x "$LINUX_APP/java/bin/java" ]] || { echo 'Linux Java runtime was generated but java/bin/java is not executable.' >&2; exit 1; }
 runtime_version="$("$LINUX_APP/java/bin/java" -version 2>&1 | head -n1)"
 echo "Embedded Linux Java runtime: READY ($runtime_version)"
-echo "SynKinect Studio 1.0 rebuilt. SHA-256: $linux_hash"
+echo "SynKinect Studio rebuilt. SHA-256: $linux_hash"
+echo "Software version: $PROJECT_VERSION"
 echo "Linux runtime: $LINUX_APP"

@@ -1,4 +1,6 @@
-# Kinect Xbox 360 Remold — Windows V1 source
+# Kinect Xbox 360 Remold — Windows source
+
+**Software version:** 1
 
 V1 keeps Kinect-specific policy in user mode and uses Microsoft inbox Windows facilities for the kernel-facing pieces.
 
@@ -15,7 +17,7 @@ For 1473 setup, camera revision 02.05 uses Windows `IgnoreHWSerNum` so its place
 - Media Foundation virtual camera publishes RGB.
 - `Kinect360RemoldCameraIp` publishes authenticated HTTP/MJPEG from the shared RGB transport.
 
-No Remold-authored general-purpose Kinect kernel `.sys` is required by the V1 architecture.
+No Remold-authored general-purpose Kinect kernel `.sys` is required by the Version 1 architecture.
 
 ## Multi-Kinect camera runtime
 
@@ -40,7 +42,7 @@ AudioBridge uploads firmware in the `02AD` boot state, waits for `02BB&MI_02` or
 
 ## Build
 
-Use Windows 11 x64 with PowerShell 5.1+. The V1 builder discovers any healthy compatible MSVC/SDK/WDK installation. When those native prerequisites are absent, `BUILD.cmd` applies the bundled snapshot of Microsoft's official WDK WinGet configuration, which installs Visual Studio Community with the required driver-development components and the 10.0.28000 Windows SDK/WDK family. WinGet/Visual Studio requests administrator approval when Windows requires it; the build then validates the actual tools found on disk before compiling. Python is not a build dependency.
+Use Windows 11 x64 with PowerShell 5.1+. The Version 1 builder discovers any healthy compatible MSVC/SDK/WDK installation. When those native prerequisites are absent, `BUILD.cmd` applies the bundled snapshot of Microsoft's official WDK WinGet configuration, which installs Visual Studio Community with the required driver-development components and the 10.0.28000 Windows SDK/WDK family. WinGet/Visual Studio requests administrator approval when Windows requires it; the build then validates the actual tools found on disk before compiling. Python is not a build dependency.
 
 From `drivers/windows/`:
 

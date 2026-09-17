@@ -201,7 +201,7 @@ class SurveillanceCamera {
 
       // Do not leave IR on a blind timer. Repeated timed RGB probes physically
       // reprogram endpoint 0x81 and make the emitter visibly blink. A RGB probe
-      // is allowed only after stable IR evidence suggests ambient light changed,
+      // is allowed only after stable IR evidence suggests an ambient-light transition,
       // and only after a cooldown.
       if(meanLuma>=cfg.nightIrProbeLuma)irBrightFrames++;else irBrightFrames=max(0,irBrightFrames-1);
       if(canUseInfrared()&&nightMode&&!rgbProbe&&
@@ -466,7 +466,7 @@ class AviIndexEntry {final long offset;final int size;AviIndexEntry(long o,int s
 
 // Minimal standards-based AVI 1.0 writer.  Every retained JPEG becomes one MJPEG
 // keyframe, so no external executable, JNI codec or platform media framework is
-// required.  Header/index fields are patched on close and the resulting AVI is
+// required. Header/index fields are finalized on close and the resulting AVI is
 // structured as a conventional indexed MJPEG stream for standard AVI readers.
 class MjpegAviWriter implements Closeable {
   final RandomAccessFile out;final int width,height,fps;final ArrayList<AviIndexEntry> index=new ArrayList<AviIndexEntry>();

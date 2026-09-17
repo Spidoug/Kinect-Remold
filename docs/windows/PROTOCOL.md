@@ -39,7 +39,7 @@ Consumers never open `02AD` or the `02BB/02C3` UAC runtime directly; AudioBridge
 
 ## Kinect 1473 motor/LED control profile
 
-The 1473 exposes motor, LED and accelerometer control through the post-firmware `045E:02BB/02C3&MI_00` WinUSB function instead of the 1414 `045E:02B0` control function. The V1 bulk ABI uses endpoint `0x01` for commands and `0x81` for replies. Commands use magic `0x06022009`; normal replies use magic `0x0A6FE000`. LED uses command `0x10`, tilt uses `0x803B`, and status uses `0x8032`. The 1473 command tag sequence begins at zero. Reply acceptance is based on valid reply magic and zero status; an echoed tag is not treated as a hard validity condition.
+The 1473 exposes motor, LED and accelerometer control through the post-firmware `045E:02BB/02C3&MI_00` WinUSB function instead of the 1414 `045E:02B0` control function. The Version 1 bulk ABI uses endpoint `0x01` for commands and `0x81` for replies. Commands use magic `0x06022009`; normal replies use magic `0x0A6FE000`. LED uses command `0x10`, tilt uses `0x803B`, and status uses `0x8032`. The 1473 command tag sequence begins at zero. Reply acceptance is based on valid reply magic and zero status; an echoed tag is not treated as a hard validity condition.
 
 Normal 1473 control opens do not reset, abort or flush `MI_00`: `02BB/02C3` is a composite runtime family and `MI_02` may be carrying live four-channel USB Audio at the same time. Transfer time is bounded so a missing ACK cannot hold the Broker in a non-stoppable service state. If an explicit LED/tilt/status transaction fails, the Broker closes the MI_00 handle, waits briefly and performs one fresh-handle retry; persistent failure is returned to the caller without restarting the audio composite. Installation checks only that the WinUSB transport is configured and does not use a live LED/tilt response as a pass/fail gate. CameraBridge does not open MI_00 directly. For model 1473 it asks the Broker for the internal one-shot controller preparation before arming camera ISO; if the full 02BB runtime is not ready, camera streaming is deferred instead of entering a USB reconnect loop.
 
@@ -47,7 +47,7 @@ Normal 1473 control opens do not reset, abort or flush `MI_00`: `02BB/02C3` is a
 
 Pipe: `\\.\pipe\Kinect360RemoldScanner-<device-id>`
 
-The V1 handshake reply is **68 bytes**. Every client must consume the complete reply before reading a frame header. The payload format on Windows is sensor-native for Studio-facing camera streams:
+The Version 1 handshake reply is **68 bytes**. Every client must consume the complete reply before reading a frame header. The payload format on Windows is sensor-native for Studio-facing camera streams:
 
 - RGB VGA: GRBG8 Bayer, 640×480, 307200 bytes.
 - RGB HQ: GRBG8 Bayer, 1280×1024, 1310720 bytes.

@@ -7,7 +7,7 @@ set "CHILD=%ROOT%source\BUILD.cmd"
 set "RC=0"
 
 echo ============================================================
-echo  Kinect Xbox 360 Remold v1.0 - Windows build launcher
+echo  Kinect Xbox 360 Remold - Windows build launcher
 echo ============================================================
 echo.
 
@@ -39,5 +39,5 @@ if "%RC%"=="0" (
     echo   "%ROOT%source\logs"
 )
 echo.
-if not defined REMOLD_CALLER pause
+if not defined REMOLD_CALLER if not "%REMOLD_NO_PAUSE%"=="1" pause
 exit /b %RC%

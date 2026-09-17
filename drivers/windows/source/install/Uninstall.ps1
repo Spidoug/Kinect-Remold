@@ -88,4 +88,5 @@ if(Test-Path -LiteralPath $DevelopmentCert -PathType Leaf){
     }catch{Write-Warning ("Could not remove development trust certificate: {0}" -f $_.Exception.Message)}
 }
 
-Write-Host ("{0} v{1} UNINSTALL COMPLETE" -f $ProductName,$Product.Version) -ForegroundColor Green
+Write-Host ("{0} UNINSTALL COMPLETE" -f $ProductName) -ForegroundColor Green
+Write-Host ("Software version: {0}" -f $Product.Version) -ForegroundColor Green

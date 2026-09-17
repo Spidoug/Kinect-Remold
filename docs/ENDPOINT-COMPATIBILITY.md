@@ -1,4 +1,4 @@
-# Kinect Xbox 360 Remold V1 endpoint compatibility
+# Kinect Xbox 360 Remold endpoint compatibility
 
 The runtime uses the Kinect device identities, USB endpoints and stream semantics listed below.
 

@@ -2,6 +2,16 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+restore_linux_script_permissions(){
+  local script
+  while IFS= read -r -d '' script; do
+    chmod u+x "$script" 2>/dev/null || true
+  done < <(find "$ROOT" -type f -name '*.sh' -print0 2>/dev/null)
+}
+restore_linux_script_permissions
+PROJECT_VERSION="$(tr -d '\r\n' < "$ROOT/VERSION")"
+[[ "$PROJECT_VERSION" == 1 ]] || { echo "VERSION must be 1 for this source tree." >&2; exit 2; }
 choose_log_dir(){
   local candidate="$ROOT/logs"
   if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then printf '%s' "$candidate"; return 0; fi
@@ -33,22 +43,22 @@ pause_build_window(){
 
 resolved_driver_dist(){
   if [[ -n "${REMOLD_DIST_DIR:-}" ]]; then printf '%s' "$REMOLD_DIST_DIR"; return 0; fi
-  local arch project_dist state_file saved
+  local arch cache_dist state_file saved
   arch="$(uname -m)"
-  project_dist="$ROOT/.cache/linux-driver/dist/$arch"
-  if [[ -x "$project_dist/bin/kinect360-remoldctl" ]]; then printf '%s' "$project_dist"; return 0; fi
+  cache_dist="${XDG_CACHE_HOME:-${HOME:-/tmp}/.cache}/kinect360-remold/linux-driver/dist/$arch"
   state_file="${HOME:-/tmp}/.local/state/kinect360-remold/linux-driver-dist-$arch.path"
   if [[ -r "$state_file" ]]; then
     IFS= read -r saved < "$state_file" || true
     if [[ -n "$saved" ]]; then printf '%s' "$saved"; return 0; fi
   fi
-  printf '%s' "$project_dist"
+  printf '%s' "$cache_dist"
 }
 
 build_all(){
   set -Eeuo pipefail
   echo '============================================================'
-  echo ' Kinect Xbox 360 Remold v1.0'
+  echo " Kinect Xbox 360 Remold"
+  echo " Software version: $PROJECT_VERSION"
   echo ' BUILD - SynKinect Studio + Linux Driver and Runtime'
   echo '============================================================'
   echo "Log: $LOG_FILE"

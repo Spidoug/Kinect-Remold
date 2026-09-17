@@ -3,7 +3,15 @@ set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+restore_linux_script_permissions(){
+  local script
+  while IFS= read -r -d '' script; do
+    chmod u+x "$script" 2>/dev/null || true
+  done < <(find "$PROJECT_ROOT" -type f -name '*.sh' -print0 2>/dev/null)
+}
+
 PROJECT_ROOT="$(cd "$ROOT/../.." && pwd)"
+restore_linux_script_permissions
 PRODUCT_NAME="Kinect Xbox 360 Remold"
 ACTION="Menu"
 TARGET_DEVICE=""
@@ -57,12 +65,10 @@ run_root(){
 
 resolve_dist_dir(){
   local arch="$(uname -m)" candidate state_file saved
-  candidate="$PROJECT_ROOT/.cache/linux-driver/dist/$arch"
-  if [[ -x "$candidate/bin/kinect360-remoldctl" ]]; then printf '%s\n' "$candidate"; return 0; fi
   state_file="${HOME:-/tmp}/.local/state/kinect360-remold/linux-driver-dist-$arch.path"
   if [[ -r "$state_file" ]]; then
     IFS= read -r saved < "$state_file" || true
-    if [[ -n "$saved" && -x "$saved/bin/kinect360-remoldctl" ]]; then printf '%s\n' "$saved"; return 0; fi
+    if [[ -n "$saved" && -f "$saved/bin/kinect360-remoldctl" ]]; then printf '%s\n' "$saved"; return 0; fi
   fi
   candidate="${XDG_CACHE_HOME:-${HOME:-/tmp}/.cache}/kinect360-remold/linux-driver/dist/$arch"
   printf '%s\n' "$candidate"
@@ -79,7 +85,11 @@ distribution_ready(){
     "$dist/libexec/kinect360-remold/kinect360-remold-v4l2"
     "$dist/libexec/kinect360-remold/ensure-v4l2-device.sh"
   )
-  for file in "${expected[@]}"; do [[ -x "$file" ]] || return 1; done
+  for file in "${expected[@]}"; do
+    [[ -f "$file" ]] || return 1
+    chmod u+x "$file" 2>/dev/null || true
+    [[ -x "$file" ]] || return 1
+  done
   return 0
 }
 
@@ -91,7 +101,10 @@ find_ctl(){
   )
   local candidate
   for candidate in "${candidates[@]}"; do
-    if [[ -x "$candidate" ]]; then printf '%s\n' "$candidate"; return 0; fi
+    if [[ -f "$candidate" ]]; then
+      chmod u+x "$candidate" 2>/dev/null || true
+      if [[ -x "$candidate" ]]; then printf '%s\n' "$candidate"; return 0; fi
+    fi
   done
   return 1
 }

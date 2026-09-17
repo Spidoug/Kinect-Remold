@@ -3,13 +3,26 @@ param([string]$JdkHome='')
 $ErrorActionPreference='Stop'
 
 $RepoRoot=Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$ProjectVersion=[IO.File]::ReadAllText((Join-Path $RepoRoot 'VERSION')).Trim()
+if($ProjectVersion -ne '1'){throw "VERSION must be 1 for this source tree."}
 $Sketch=Join-Path $RepoRoot 'applications\processing\SynKinectStudio'
+$ModuleSdk=Join-Path $RepoRoot 'applications\studio-module-sdk'
+$ModuleApiSrc=Join-Path $ModuleSdk 'src\main\java'
 $Templates=Join-Path $RepoRoot 'applications\runtime-templates'
 $LinuxApp=Join-Path $RepoRoot 'applications\binaries\linux-x64'
 $WindowsApp=Join-Path $RepoRoot 'applications\binaries\windows-x64'
 $WindowsLib=Join-Path $WindowsApp 'lib'
 $LinuxLib=Join-Path $LinuxApp 'lib'
-$Cache=Join-Path $RepoRoot '.cache\studio'
+$WindowsModules=Join-Path $WindowsApp 'modules'
+$LinuxModules=Join-Path $LinuxApp 'modules'
+$LocalCacheRoot=$env:LOCALAPPDATA
+if([string]::IsNullOrWhiteSpace($LocalCacheRoot)){
+  $LocalCacheRoot=[Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+}
+if([string]::IsNullOrWhiteSpace($LocalCacheRoot)){
+  $LocalCacheRoot=[IO.Path]::GetTempPath()
+}
+$Cache=Join-Path $LocalCacheRoot 'Kinect360Remold\Cache\studio' 
 
 function Ensure-Directory([string]$Path){if(!(Test-Path -LiteralPath $Path -PathType Container)){New-Item -ItemType Directory -Path $Path -Force|Out-Null}}
 function File-Sha256([string]$Path){(Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()}
@@ -161,6 +174,8 @@ Ensure-Directory $WindowsApp
 Ensure-Directory $LinuxApp
 Ensure-Directory $WindowsLib
 Ensure-Directory $LinuxLib
+Ensure-Directory $WindowsModules
+Ensure-Directory $LinuxModules
 
 $processingBase='https://repo.maven.apache.org/maven2/org/processing/core/4.4.6'
 $joglBase='https://jogamp.org/deployment/maven/org/jogamp/jogl/jogl-all/2.5.0'
@@ -182,6 +197,8 @@ Copy-Item -LiteralPath (Join-Path $Templates 'windows-x64\SynKinectStudio.cmd') 
 Copy-Item -LiteralPath (Join-Path $Templates 'linux-x64\SynKinectStudio.sh') -Destination (Join-Path $LinuxApp 'SynKinectStudio.sh') -Force
 Copy-Item -LiteralPath (Join-Path $Templates 'linux-x64\SynKinectStudio.desktop') -Destination (Join-Path $LinuxApp 'SynKinectStudio.desktop') -Force
 Copy-Item -LiteralPath (Join-Path $Sketch 'data\synkinect-studio-icon.png') -Destination (Join-Path $LinuxApp 'synkinect-studio-icon.png') -Force
+Copy-Item -LiteralPath (Join-Path $ModuleSdk 'MODULES.txt') -Destination (Join-Path $WindowsModules 'README.txt') -Force
+Copy-Item -LiteralPath (Join-Path $ModuleSdk 'MODULES.txt') -Destination (Join-Path $LinuxModules 'README.txt') -Force
 
 $jdk=Resolve-Jdk17 $JdkHome
 $javac=$jdk.Javac
@@ -191,7 +208,33 @@ $feature=$jdk.Feature
 
 $work=Join-Path ([IO.Path]::GetTempPath()) ('SynKinectStudio-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path (Join-Path $work 'classes') -Force|Out-Null
+New-Item -ItemType Directory -Path (Join-Path $work 'module-api-classes') -Force|Out-Null
 try{
+  $moduleApiSources=@(Get-ChildItem -LiteralPath $ModuleApiSrc -Filter '*.java' -File -Recurse | Sort-Object FullName | ForEach-Object FullName)
+  if($moduleApiSources.Count -eq 0){throw "SynKinect Studio Module API sources were not found: $ModuleApiSrc"}
+  $moduleApiCp=Join-Path $WindowsLib 'core-4.4.6.jar'
+  $oldPreference=$ErrorActionPreference
+  try{
+    $ErrorActionPreference='Continue'
+    & $javac -encoding UTF-8 --release 17 -Xlint:all -cp $moduleApiCp -d (Join-Path $work 'module-api-classes') @moduleApiSources
+    $moduleApiJavacExit=$LASTEXITCODE
+  }finally{$ErrorActionPreference=$oldPreference}
+  if($moduleApiJavacExit -ne 0){throw "Module API javac failed: $moduleApiJavacExit"}
+  $moduleApiManifest=Join-Path $work 'MODULE-API.MF'
+  @('Manifest-Version: 1.0','Implementation-Title: SynKinect Studio Module API','Implementation-Version: 1','Automatic-Module-Name: org.synkinect.studio.moduleapi','')|Set-Content $moduleApiManifest -Encoding ASCII
+  $moduleApiJar=Join-Path $work 'SynKinectStudio-module-api.jar'
+  $oldPreference=$ErrorActionPreference
+  try{
+    $ErrorActionPreference='Continue'
+    & $jar --create --file $moduleApiJar --manifest $moduleApiManifest --date=2026-01-01T00:00:00Z -C (Join-Path $work 'module-api-classes') .
+    $moduleApiJarExit=$LASTEXITCODE
+  }finally{$ErrorActionPreference=$oldPreference}
+  if($moduleApiJarExit -ne 0){throw "Module API jar failed: $moduleApiJarExit"}
+  Copy-Item $moduleApiJar (Join-Path $WindowsLib 'SynKinectStudio-module-api.jar') -Force
+  Copy-Item $moduleApiJar (Join-Path $LinuxLib 'SynKinectStudio-module-api.jar') -Force
+  Write-Host 'SynKinect Studio Module API: READY' -ForegroundColor Green
+  Write-Host 'Module API software version: 1' -ForegroundColor DarkGray
+
   $tabs=@(Join-Path $Sketch 'SynKinectStudio.pde') + @(Get-ChildItem $Sketch -Filter '*.pde'|Where-Object Name -ne 'SynKinectStudio.pde'|Sort-Object Name|ForEach-Object FullName)
   $imports=@('import processing.core.*;','import processing.data.*;','import processing.event.*;','import processing.opengl.*;')
   $body=New-Object System.Collections.Generic.List[string]
@@ -199,7 +242,7 @@ try{
   $java=Join-Path $work 'SynKinectStudio.java'
   $lines=@($imports|Select-Object -Unique)+@('public class SynKinectStudio extends PApplet {')+$body+@('public static void main(String[] args){PApplet.main(SynKinectStudio.class.getName());}','}')
   [IO.File]::WriteAllLines($java,$lines,(New-Object Text.UTF8Encoding($false)))
-  $cp=(Join-Path $WindowsLib 'core-4.4.6.jar')+';'+(Join-Path $WindowsLib 'jogl-all-2.5.0.jar')+';'+(Join-Path $WindowsLib 'gluegen-rt-2.5.0.jar')
+  $cp=(Join-Path $WindowsLib 'core-4.4.6.jar')+';'+(Join-Path $WindowsLib 'jogl-all-2.5.0.jar')+';'+(Join-Path $WindowsLib 'gluegen-rt-2.5.0.jar')+';'+$moduleApiJar
   $oldPreference=$ErrorActionPreference
   try{
     $ErrorActionPreference='Continue'
@@ -208,7 +251,7 @@ try{
   }finally{$ErrorActionPreference=$oldPreference}
   if($javacExit -ne 0){throw "javac failed: $javacExit"}
   Copy-Item (Join-Path $Sketch 'data\synkinect-studio-icon.png') (Join-Path $work 'classes\synkinect-studio-icon.png')
-  $manifest=Join-Path $work 'MANIFEST.MF'; @('Manifest-Version: 1.0','Main-Class: SynKinectStudio','Implementation-Title: SynKinect Studio','Implementation-Version: 1.0','')|Set-Content $manifest -Encoding ASCII
+  $manifest=Join-Path $work 'MANIFEST.MF'; @('Manifest-Version: 1.0','Main-Class: SynKinectStudio','Implementation-Title: SynKinect Studio',('Implementation-Version: '+$ProjectVersion),'')|Set-Content $manifest -Encoding ASCII
   $out=Join-Path $work 'SynKinectStudio.jar'
   $oldPreference=$ErrorActionPreference
   try{
@@ -226,8 +269,7 @@ try{
   $linuxHash=(Get-FileHash (Join-Path $LinuxLib 'SynKinectStudio.jar') -Algorithm SHA256).Hash.ToLowerInvariant()
   if($windowsHash -ne $linuxHash){throw 'Package validation failed: platform Studio JAR hashes differ.'}
 
-  # One Windows V1 runtime path: after the final application JAR exists, use
-  # jdeps + jlink to derive the exact Java modules required by SynKinect Studio.
+  # The packaged runtime includes the standard JDK module set used by installed Studio modules.
   $runtimeBuilder=Join-Path $PSScriptRoot 'Build-ApplicationRuntime.ps1'
   if(!(Test-Path -LiteralPath $runtimeBuilder -PathType Leaf)){throw "Windows Java runtime builder not found: $runtimeBuilder"}
   $runtimePowerShell=Join-Path $PSHOME 'powershell.exe'
@@ -235,5 +277,6 @@ try{
   & $runtimePowerShell -NoLogo -NoProfile -ExecutionPolicy Bypass -File $runtimeBuilder -JdkHome $jdk.Home
   if($LASTEXITCODE -ne 0){throw "Windows Java runtime build failed: $LASTEXITCODE"}
 
-  Write-Host "SynKinect Studio 1.0 rebuilt for both platforms. SHA-256: $windowsHash" -ForegroundColor Green
+  Write-Host "SynKinect Studio rebuilt for both platforms. SHA-256: $windowsHash" -ForegroundColor Green
+  Write-Host "Software version: $ProjectVersion" -ForegroundColor DarkGray
 }finally{Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue}

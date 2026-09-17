@@ -32,4 +32,3 @@ sudo bash INSTALL.sh --direct
 
 Build dependencies: CMake, a C++17 compiler, pkg-config, libusb-1.0 >= 1.0.18 development headers, ALSA development headers, libjpeg development headers, cabextract/msitools, Python 3 and CA certificates. Runtime installation does not require those development tools. `drivers/linux/BUILD.sh` records a timestamped log and keeps an interactive terminal open at the end; pass `--no-pause` for automation.
 
-Debian packages: `bash packages/build-deb.sh amd64`. RPM packages: `packages/build-rpm.sh` on an RPM build host. Both package paths compile current source and do not consume a repository binary payload.

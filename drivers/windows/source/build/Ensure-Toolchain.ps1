@@ -27,6 +27,29 @@ function Get-WinGetPath {
     return $null
 }
 
+function Install-WinGetClient {
+    Write-Host 'WinGet is not registered; provisioning the Microsoft WinGet client...' -ForegroundColor Yellow
+    $previous=[Net.ServicePointManager]::SecurityProtocol
+    try{
+        [Net.ServicePointManager]::SecurityProtocol=$previous -bor [Net.SecurityProtocolType]::Tls12
+        if($null -eq (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)){
+            Install-PackageProvider -Name NuGet -Scope CurrentUser -Force -ErrorAction Stop|Out-Null
+        }
+        if($null -eq (Get-Module -ListAvailable -Name Microsoft.WinGet.Client | Select-Object -First 1)){
+            Install-Module -Name Microsoft.WinGet.Client -Scope CurrentUser -Force -AllowClobber -Repository PSGallery -ErrorAction Stop
+        }
+        Import-Module Microsoft.WinGet.Client -Force -ErrorAction Stop
+        Repair-WinGetPackageManager -Force -Latest -ErrorAction Stop|Out-Null
+    }catch{
+        Write-Host ("WinGet provisioning failed: {0}" -f $_.Exception.Message) -ForegroundColor Red
+        return $null
+    }finally{
+        [Net.ServicePointManager]::SecurityProtocol=$previous
+    }
+    Start-Sleep -Seconds 2
+    return (Get-WinGetPath)
+}
+
 function Invoke-WinGet {
     param(
         [string[]]$Arguments,
@@ -58,7 +81,7 @@ function Get-VisualStudioInstance {
     return ([string]$path).Trim()
 }
 
-function Invoke-VisualStudioConfigRepair {
+function Invoke-VisualStudioConfigProvisioning {
     if(!(Test-Path -LiteralPath $VsConfig -PathType Leaf)){return $false}
     $installPath=Get-VisualStudioInstance
     if([string]::IsNullOrWhiteSpace($installPath)){return $false}
@@ -77,7 +100,7 @@ function Invoke-VisualStudioConfigRepair {
         }
         return $true
     } catch {
-        Write-Host ("Visual Studio component repair could not run: {0}" -f $_.Exception.Message) -ForegroundColor Yellow
+        Write-Host ("Visual Studio component provisioning could not run: {0}" -f $_.Exception.Message) -ForegroundColor Yellow
         return $false
     }
 }
@@ -88,29 +111,26 @@ if(Test-Toolchain){
 }
 
 $script:WinGet=Get-WinGetPath
-if([string]::IsNullOrWhiteSpace($script:WinGet)){
-    throw 'WinGet was not found. Windows 11 normally provides it through Microsoft App Installer. Install/update App Installer from Microsoft Store and run BUILD.cmd again.'
-}
+if([string]::IsNullOrWhiteSpace($script:WinGet)){$script:WinGet=Install-WinGetClient}
+if([string]::IsNullOrWhiteSpace($script:WinGet)){throw 'WinGet could not be provisioned on this Windows installation.'}
 
 if(!(Test-Path -LiteralPath $OfficialConfig -PathType Leaf)){
-    throw "Official V1 WDK WinGet configuration is missing: $OfficialConfig"
+    throw "Official Version 1 WDK WinGet configuration is missing: $OfficialConfig"
 }
 if(!(Test-Path -LiteralPath $VsConfig -PathType Leaf)){
-    throw "Official V1 Visual Studio component configuration is missing: $VsConfig"
+    throw "Official Version 1 Visual Studio component configuration is missing: $VsConfig"
 }
 
 $wingetVersion=& $script:WinGet --version 2>$null | Select-Object -First 1
 Write-Host ("WinGet: {0}" -f $wingetVersion) -ForegroundColor DarkGray
 Write-Host 'Native prerequisites are missing. WinGet may request Windows administrator approval while installing Microsoft development components.' -ForegroundColor Yellow
 
-# First choice: Microsoft's current WDK machine configuration. It installs one
-# coherent Visual Studio + desktop driver components + Windows SDK/WDK 28000
-# environment and is idempotent on machines where some pieces already exist.
+# Apply Microsoft's WDK machine configuration with Visual Studio, desktop driver components and Windows SDK/WDK 28000.
 [void](Invoke-WinGet @(
     'configure','-f',$OfficialConfig,
     '--accept-configuration-agreements',
     '--disable-interactivity'
-) 'Applying Microsoft WDK V1 development configuration' -AllowFailure)
+) 'Applying Microsoft WDK Version 1 development configuration' -AllowFailure)
 
 Start-Sleep -Seconds 2
 if(Test-Toolchain){
@@ -118,18 +138,15 @@ if(Test-Toolchain){
     exit 0
 }
 
-# If an existing Visual Studio installation was only missing WDK/C++ components,
-# import the same official .vsconfig directly into that instance before falling
-# back to individual WinGet packages.
-[void](Invoke-VisualStudioConfigRepair)
+# Apply the same component configuration directly to an existing Visual Studio installation.
+[void](Invoke-VisualStudioConfigProvisioning)
 Start-Sleep -Seconds 2
 if(Test-Toolchain){
     Write-Host 'Visual Studio C++ / Windows SDK / WDK toolchain: READY' -ForegroundColor Green
     exit 0
 }
 
-# Fallback for WinGet installations where the configuration processor cannot be
-# initialized. Keep the exact same Microsoft package family and component file.
+# Package provisioning uses the same Microsoft package family and component file.
 $common=@('--exact','--source','winget','--accept-package-agreements','--accept-source-agreements','--disable-interactivity')
 $vsOverride='--passive --wait --norestart --config "{0}"' -f $VsConfig
 [void](Invoke-WinGet (@('install','--id','Microsoft.VisualStudio.Community')+$common+@('--override',$vsOverride)) 'Installing Visual Studio Community with the WDK desktop component set' -AllowFailure)

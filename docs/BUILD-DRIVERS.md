@@ -1,6 +1,6 @@
-# Native driver build — V1
+# Native driver build — Version 1
 
-Generated native files such as `.exe`, `.dll`, `.sys`, `.cat`, ELF executables, `.deb`, `.rpm`, generated JAR/runtime payloads and temporary build directories are build outputs. They are ignored by `.gitignore` and recreated by the build system.
+Generated native files such as `.exe`, `.dll`, `.sys`, `.cat`, ELF executables, generated JAR/runtime payloads and temporary build directories are build outputs. They are ignored by `.gitignore` and recreated by the build system.
 
 ## Windows x64
 
@@ -10,7 +10,7 @@ Requirements:
 - Windows PowerShell 5.1 or newer;
 - Internet access for the first build when prerequisites are absent.
 
-`BUILD.cmd` first uses any healthy installed toolchain. If native prerequisites are missing, the V1 preflight applies the bundled snapshot of Microsoft's official WDK WinGet configuration. That configuration installs Visual Studio Community with the desktop driver-development component set plus Windows SDK/WDK 10.0.28000; WinGet/Visual Studio may request administrator approval as needed. No Python build dependency is used. If JDK 17+ is absent, the Studio builder downloads the pinned Microsoft OpenJDK archive, validates its published SHA-256 and keeps it under the repository-local `.cache`; the generated application receives one minimal Java runtime produced by `jdeps`/`jlink`.
+`BUILD.cmd` first uses any healthy installed toolchain. If native prerequisites are missing, the Version 1 preflight applies the bundled snapshot of Microsoft's official WDK WinGet configuration. That configuration installs Visual Studio Community with the desktop driver-development component set plus Windows SDK/WDK 10.0.28000; WinGet/Visual Studio may request administrator approval as needed. No Python build dependency is used. Windows build downloads, including the Studio JDK/dependencies and native driver dependencies, are kept outside the source tree under `%LOCALAPPDATA%\Kinect360Remold\Cache`. If JDK 17+ is absent, the Studio builder downloads the pinned Microsoft OpenJDK archive, validates its published SHA-256 and the generated application receives one minimal Java runtime produced by `jdeps`/`jlink`.
 
 Build from the repository root (recommended for double-click use):
 
@@ -58,38 +58,15 @@ bash scripts/linux/BUILD-DRIVER.sh --clean
 Generated output is placed in the writable Linux build workspace:
 
 ```text
-.cache/linux-driver/dist/<architecture>/
+$XDG_CACHE_HOME/kinect360-remold/linux-driver/dist/<architecture>/
+# or, when XDG_CACHE_HOME is unset:
+~/.cache/kinect360-remold/linux-driver/dist/<architecture>/
 ```
 
-If the source tree is not writable, the same layout is created under the current user's cache directory. The build records the resolved path so `INSTALL.sh` can locate it when invoked through `sudo`. Generated output is not committed to the repository.
-
-### Debian package
-
-```bash
-bash drivers/linux/packages/build-deb.sh amd64
-```
-
-The package builder performs a **fresh CMake compile inside a temporary build directory**, stages those exact executables and then creates:
-
-```text
-drivers/linux/packages/output/kinect360-remold_1.0-1_amd64.deb
-```
-
-No precompiled binary directory is an input to the package builder.
-
-### RPM package
-
-Build on an RPM-family build host with:
-
-```bash
-bash drivers/linux/packages/build-rpm.sh
-```
-
-The script creates a temporary source tarball from `drivers/linux/source/` and runs `rpmbuild` with `packages/rpm/kinect360-remold.spec`. The spec has its own CMake `%build` stage and installs only from that fresh build.
-
+The build workspace is always outside the source tree, under the current user's cache directory. The build records the resolved distribution path so `INSTALL.sh` can locate it when invoked through `sudo`. No `.cache` directory is created inside the program/repository directory.
 
 ## Linux build sequence
 
-The Linux build installs missing build dependencies on supported package managers, configures CMake, obtains the pinned Microsoft Kinect for Windows Runtime v1.8 payload, verifies its SHA-256, extracts and verifies UACFirmware 01.02.709.00, builds camera/control/audio/NUI/V4L2 components and creates the distribution in the writable Linux build workspace. The project-local workspace is `.cache/linux-driver/`; when the source tree is not writable, the build uses the user cache/state directories and records the resulting distribution path for `INSTALL.sh`. Debian and RPM package builders compile from the same Linux source tree.
+The Linux build installs missing build dependencies on supported package managers, configures CMake, obtains the pinned Microsoft Kinect for Windows Runtime v1.8 payload, verifies its SHA-256, extracts and verifies UACFirmware 01.02.709.00, builds camera/control/audio/NUI/V4L2 components and creates the distribution under the current user's OS cache directory. The source tree is never used as a cache workspace. The resolved distribution path is recorded for `INSTALL.sh`.
 
 `drivers/linux/BUILD.sh` writes a timestamped log under `drivers/linux/logs/`. When attached to an interactive terminal it waits for Enter after success or failure so diagnostics remain visible. Pass `--no-pause` when running it from automation.

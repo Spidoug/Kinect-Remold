@@ -541,9 +541,9 @@ class Camera::Impl {
     if (!stream.stopping && !device_dead_.load()) {
       const int rc = libusb_submit_transfer(transfer);
       if (rc == 0) return;
-      // Any resubmission failure leaves this isoch slot inactive. Force the
-      // outer hot-plug loop to reopen the device instead of silently losing
-      // slots until the stream stalls.
+      // Any resubmission failure leaves this isoch slot inactive. The outer
+      // hot-plug loop reopens the device so the stream cannot continue with a
+      // progressively shrinking transfer set.
       device_dead_.store(true);
     }
 

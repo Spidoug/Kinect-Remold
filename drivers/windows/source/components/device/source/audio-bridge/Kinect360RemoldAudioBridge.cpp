@@ -649,9 +649,8 @@ std::unique_ptr<UsbSession> OpenBootAudioUsb(const std::set<std::wstring>& suppr
                 session->inputPipe = in;
                 session->outputPipe = out;
                 // Leave PIPE_TRANSFER_TIMEOUT at WinUSB's default. The loader
-                // reference uses ordinary bulk transfers; V1 bounds each I/O
-                // explicitly with OVERLAPPED + CancelIoEx instead of arming a
-                // persistent host-side pipe timer.
+                // uses ordinary bulk transfers; V1 bounds each I/O explicitly with
+                // OVERLAPPED + CancelIoEx, so no persistent host-side pipe timer is armed.
                 result = std::move(session);
                 break;
             }

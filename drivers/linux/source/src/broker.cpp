@@ -348,6 +348,6 @@ int main(){
   if(auto* gr=getgrnam("video")){
     if(::chown(kControlSocket,0,gr->gr_gid)!=0 && errno!=ENOENT && errno!=EPERM){}
   }
-  while(run){int c=::accept4(s,nullptr,nullptr,SOCK_CLOEXEC);if(c<0){if(errno==EINTR)continue;if(!run)break;unixio::retry_sleep();continue;}std::thread(client,c).detach();}
+  while(run){int c=::accept4(s,nullptr,nullptr,SOCK_CLOEXEC);if(c<0){if(errno==EINTR)continue;if(!run)break;unixio::retry_sleep();continue;}unixio::set_io_timeout(c,3000);std::thread(client,c).detach();}
   ::close(s);::unlink(kControlSocket);{std::lock_guard<std::mutex> g(usb_mu);close_motor();}libusb_exit(usb_ctx);return 0;
 }

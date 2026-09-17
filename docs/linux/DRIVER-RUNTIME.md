@@ -18,14 +18,12 @@ The Linux implementation is a user-space Kinect 1414/1473 driver/runtime. It doe
 
 ## Build, install and plug-and-play lifecycle
 
-Linux native executables and packages are generated from the current source. Build and install with:
+Linux native executables are generated from the current source and installed by the project scripts. Build and install with:
 
 ```bash
 bash drivers/linux/BUILD.sh
 sudo bash drivers/linux/INSTALL.sh --direct
 ```
-
-Debian packages are built with `bash drivers/linux/packages/build-deb.sh amd64`; RPM-family systems use `drivers/linux/packages/build-rpm.sh`.
 
 udev recognizes the Kinect USB identities and requests `kinect360-remold.target`. The target is not enabled as an unconditional boot target. Each service keeps retrying only its own hardware function after disconnect/reconnect.
 

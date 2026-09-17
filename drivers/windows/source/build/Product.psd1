@@ -1,15 +1,15 @@
 @{
     Name        = 'Kinect Xbox 360 Remold'
-    Version     = '1.0'
+    Version     = '1'
     VersionQuad = '1.0.0.0'
-    DriverDate  = '08/29/2026'
+    DriverDate  = '09/17/2026'
     Author      = 'Douglas Santana'
     Handle      = '@spidoug'
     Prefix      = 'Kinect360Remold'
 
     # All external source identities and integrity pins live here. Component
-    # build scripts consume this block instead of carrying private commit/URL
-    # exceptions, so updating a dependency is one deliberate product change.
+    # build scripts consume this authoritative dependency block with shared commit/URL
+    # and integrity-pin metadata.
     Dependencies = @{
         WindowsCamera = @{
             Kind = 'GitArchive'
@@ -72,7 +72,7 @@
         FirewallRuleName = 'Kinect Xbox 360 Remold IP Camera'
     }
     # Central native-runtime policy. Dependency project normalizers consume this
-    # table by configuration instead of patching repeated XML literals by count.
+    # table by configuration using explicit runtime-library settings.
     UserModeRuntimeLibraryPolicy = @{
         Debug = 'MultiThreadedDebug'
         Release = 'MultiThreaded'
@@ -102,7 +102,7 @@
     # UACFirmware 01.02.709.00 is used for both Xbox 360 model 1414 and 1473.
     # Xbox sensors normally re-enumerate as 02BB; the Microsoft 1.8 driver family
     # also recognizes 02C3. Keep both runtime identities so discovery follows the
-    # actual PnP topology instead of hard-coding one post-firmware PID.
+    # actual PnP topology across both post-firmware PIDs.
     KinectUacRuntimeAudioHardwareIds = @('USB\VID_045E&PID_02BB','USB\VID_045E&PID_02C3')
     KinectUacRuntimeControlHardwareIds = @('USB\VID_045E&PID_02BB&MI_00','USB\VID_045E&PID_02C3&MI_00')
     KinectUacRuntimeSecurityHardwareIds = @('USB\VID_045E&PID_02BB&MI_01','USB\VID_045E&PID_02C3&MI_01')

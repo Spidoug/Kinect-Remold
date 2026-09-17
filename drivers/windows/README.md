@@ -1,4 +1,4 @@
-# Windows native runtime — V1
+# Windows native runtime — Version 1
 
 The Windows driver/runtime source lives entirely under `source/`. Generated driver payloads are produced by the build.
 

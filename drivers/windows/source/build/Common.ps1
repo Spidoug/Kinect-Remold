@@ -1,4 +1,78 @@
-﻿function Write-BuildStage([string]$Message){
+﻿function Get-RemoldCacheRoot([string]$ChildPath=''){
+    $base=$env:LOCALAPPDATA
+    if([string]::IsNullOrWhiteSpace($base)){
+        $base=[Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+    }
+    if([string]::IsNullOrWhiteSpace($base)){
+        $base=[IO.Path]::GetTempPath()
+    }
+    $root=Join-Path $base 'Kinect360Remold\Cache'
+    if([string]::IsNullOrWhiteSpace($ChildPath)){return $root}
+    return Join-Path $root $ChildPath
+}
+
+function Expand-ZipSubtreeClean([string]$Archive,[string]$Destination,[string]$Subtree){
+    Require-File $Archive 'ZIP archive'
+    if(!(Test-ZipArchive $Archive)){throw "ZIP archive is invalid: $Archive"}
+
+    $subtreeName=$Subtree.Replace('\','/').Trim('/')
+    if([string]::IsNullOrWhiteSpace($subtreeName)){throw 'ZIP subtree must not be empty.'}
+
+    Remove-Item -LiteralPath $Destination -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force $Destination | Out-Null
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+    $archiveHandle=$null
+    $copiedFiles=0
+    try{
+        $archiveHandle=[IO.Compression.ZipFile]::OpenRead($Archive)
+        $marker='/' + $subtreeName + '/'
+        $destinationRoot=[IO.Path]::GetFullPath($Destination).TrimEnd('\') + '\'
+
+        foreach($entry in $archiveHandle.Entries){
+            $entryPath=$entry.FullName.Replace('\','/')
+            $relativePath=$null
+
+            if($entryPath.StartsWith($subtreeName + '/',[StringComparison]::OrdinalIgnoreCase)){
+                $relativePath=$entryPath.Substring($subtreeName.Length + 1)
+            }else{
+                $markerIndex=$entryPath.IndexOf($marker,[StringComparison]::OrdinalIgnoreCase)
+                if($markerIndex -ge 0){$relativePath=$entryPath.Substring($markerIndex + $marker.Length)}
+            }
+
+            if([string]::IsNullOrWhiteSpace($relativePath) -or [string]::IsNullOrEmpty($entry.Name)){continue}
+
+            $relativeWindowsPath=$relativePath.Replace('/','\')
+            $targetPath=[IO.Path]::GetFullPath((Join-Path $Destination $relativeWindowsPath))
+            if(!$targetPath.StartsWith($destinationRoot,[StringComparison]::OrdinalIgnoreCase)){
+                throw "ZIP entry escapes the requested subtree: $($entry.FullName)"
+            }
+
+            $targetDirectory=Split-Path -Parent $targetPath
+            New-Item -ItemType Directory -Force $targetDirectory | Out-Null
+            $inputStream=$null
+            $outputStream=$null
+            try{
+                $inputStream=$entry.Open()
+                $outputStream=[IO.File]::Open($targetPath,[IO.FileMode]::Create,[IO.FileAccess]::Write,[IO.FileShare]::None)
+                $inputStream.CopyTo($outputStream)
+            }finally{
+                if($outputStream){$outputStream.Dispose()}
+                if($inputStream){$inputStream.Dispose()}
+            }
+            $copiedFiles++
+        }
+
+        if($copiedFiles -eq 0){throw "ZIP subtree was not found: $subtreeName"}
+    }catch{
+        Remove-Item -LiteralPath $Destination -Recurse -Force -ErrorAction SilentlyContinue
+        throw "Could not extract '$subtreeName' from '$Archive'. The cached ZIP was preserved because it passed ZIP integrity validation. $($_.Exception.Message)"
+    }finally{
+        if($archiveHandle){$archiveHandle.Dispose()}
+    }
+}
+
+function Write-BuildStage([string]$Message){
     Write-Host ("[{0}] {1}" -f (Get-Date -Format 'HH:mm:ss'),$Message) -ForegroundColor Cyan
 }
 

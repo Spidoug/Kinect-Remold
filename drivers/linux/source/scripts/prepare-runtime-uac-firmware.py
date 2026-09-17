@@ -56,7 +56,7 @@ def download_runtime(destination: Path) -> None:
         temp.unlink()
     request = urllib.request.Request(
         RUNTIME_URL,
-        headers={"User-Agent": "Kinect-Xbox-360-Remold/1.0 Linux-build-parity"},
+        headers={"User-Agent": "Kinect-Xbox-360-Remold/1 Linux-build-parity"},
     )
     last: Exception | None = None
     for attempt in range(1, 4):
@@ -190,7 +190,7 @@ def find_firmware(roots: list[Path]) -> Path:
             name = path.name.lower()
             if name == "uacfirmware" or name.startswith("uacfirmware.") or "uacfirmware" in name:
                 candidates.append(path)
-    # A correct hash is authoritative even if MSI extraction renamed the file.
+    # The expected hash is authoritative even if MSI extraction uses a different file name.
     if not candidates:
         for root in roots:
             for path in root.rglob("*"):

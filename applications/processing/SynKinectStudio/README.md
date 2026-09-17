@@ -1,6 +1,6 @@
 # SynKinect Studio
 
-`SynKinectStudio.pde` is the single editable Processing application for the Kinect Xbox 360 Remold project. The Studio exposes five modules as tabs in one window:
+`SynKinectStudio.pde` is the single editable Processing application for the Kinect Xbox 360 Remold project. The Studio includes five hardware modules and can load additional modules as tabs in the same window:
 
 - **3D Scanner** — RGB + calibrated metric depth reconstruction, mesh editing and OBJ/STL/PLY export.
 - **Acoustic Scanner** — four-microphone GCC-PHAT/TDOA localization with voice activity detection, adaptive noise suppression and conservative AUTO/MANUAL beamforming to the system playback output.
@@ -13,7 +13,7 @@ Use the top tab bar or keys `1`..`5` to switch modules. The top-level Kinect con
 
 ## Instance-owned Studio runtime
 
-`SynKinectStudio.pde` keeps the Processing callbacks only as the required `PApplet` host boundary. The Studio itself is a `StudioController` instance that owns five `StudioModule` instances. Each module has instance lifecycle methods for initialization, activation, deactivation, drawing, input and disposal. Protocols, themes, transports, UI objects and the 3D viewport are also normal object instances; the PDE contains no `static` declaration.
+`SynKinectStudio.pde` keeps the Processing callbacks only as the required `PApplet` host boundary. The Studio itself is a `StudioController` instance that owns the built-in and loaded `StudioModule` instances. Each module has instance lifecycle methods for initialization, activation, deactivation, drawing, input and disposal. Protocols, themes, transports, UI objects and the 3D viewport are also normal object instances; the PDE contains no `static` declaration.
 
 Tab switching is asynchronous. The render/UI thread only requests a target module; a dedicated lifecycle worker releases the current native transport and activates the latest requested module. Rapid tab changes are coalesced, so blocking pipe/socket shutdown and worker joins never run in the Processing draw/input thread.
 
@@ -116,3 +116,9 @@ Surveillance uses an adaptive per-frame JPEG budget (10 KiB by default at 320×2
 The Scanner capture bar exposes **SENSOR CALIBRATION** and **RGB HQ**. Per-device depth calibration is enabled by default and learns per-pixel correction/noise confidence from multiple flat-wall distances; this improves use of valid depth samples but cannot create measurements inside the physical sensor's invalid/zero-depth region. RGB HQ is disabled by default and can be enabled before a scan (or with `H`); when available it requests the Kinect 1280x1024 Bayer color stream and falls back safely when the transport does not advertise it. The Kinect system control panel and the Studio system settings also expose the persistent RGB HQ policy used by the virtual camera and derived RGB services.
 
 The Remold NUI20 stream uses Kinect-v1 joint ordering. `ShoulderCenter` is published from the upper torso/neck anchor rather than the lower chest estimate, and the Linux skeleton relay completes partial socket writes so slow consumers remain connected. The Remold NUI ABI is an adapter-facing compatibility layer; it is not binary impersonation of Microsoft's Kinect SDK and does not make an Xbox 360 console game accept a PC-hosted sensor automatically.
+
+## Module API 1
+
+External modules implement `org.synkinect.studio.api.SynKinectStudioModule` and are discovered from trusted JAR files in the packaged `modules/` directory through Java `ServiceLoader`. The public API is maintained under `applications/studio-module-sdk/` and is built as `SynKinectStudio-module-api.jar`.
+
+Built-in modules remain first in navigation. Loaded modules receive `StudioModuleContext`, which provides the Processing host, locale, device snapshots, public Remold endpoints, local transport access, per-module data storage, logging and managed workers. Module JARs execute in the Studio process with the Studio user's operating-system permissions.

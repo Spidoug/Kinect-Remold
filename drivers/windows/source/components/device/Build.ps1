@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [ValidateSet('Release')][string]$Configuration='Release',
     [string]$LogPath='',
@@ -15,9 +15,8 @@ $Control1473DriverSpec=$Product.DriverPackages|Where-Object{$_.Key -eq 'Control1
 if(!$DeviceDriverSpec -or !$MotorDriverSpec -or !$AudioDriverSpec -or !$Control1473DriverSpec){throw 'Required driver package definition is missing from Product.psd1.'}
 $Dist=Join-Path $Root 'dist'
 $Work=Join-Path $Root 'work'
-$Cache=Join-Path $Root 'cache'
-
 . (Join-Path $ProjectRoot 'build\Common.ps1')
+$Cache=Get-RemoldCacheRoot 'windows-driver\device'
 
 if([string]::IsNullOrWhiteSpace($LogPath)){$LogPath=Get-DefaultLogPath $Root}
 New-Item -ItemType Directory -Force (Split-Path -Parent $LogPath)|Out-Null

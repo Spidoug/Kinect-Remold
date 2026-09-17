@@ -6,9 +6,9 @@ PLATFORM_ROOT="$(cd "$SOURCE_ROOT/.." && pwd)"
 PROJECT_ROOT="$(cd "$SOURCE_ROOT/../../.." && pwd)"
 ARCH="$(uname -m)"
 select_work_root(){
-  local candidate="$PROJECT_ROOT/.cache/linux-driver"
-  if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then printf '%s' "$candidate"; return 0; fi
-  candidate="${XDG_CACHE_HOME:-${HOME:-/tmp}/.cache}/kinect360-remold/linux-driver"
+  local cache_base candidate
+  cache_base="${XDG_CACHE_HOME:-${HOME:-/tmp}/.cache}"
+  candidate="$cache_base/kinect360-remold/linux-driver"
   mkdir -p "$candidate"
   printf '%s' "$candidate"
 }
@@ -96,7 +96,8 @@ mkdir -p "$BUILD_DIR"
 rm -rf "$DIST_DIR"
 
 echo '============================================================'
-echo ' Kinect Xbox 360 Remold v1.0 - Linux driver build'
+echo " Kinect Xbox 360 Remold - Linux driver build"
+echo " Software version: $(tr -d '\r\n' < "$SOURCE_ROOT/../../../VERSION")"
 echo ' libusb-1.0 camera/control transport + ALSA audio runtime'
 echo '============================================================'
 echo 'Firmware source : Microsoft Kinect for Windows Runtime v1.8 (1.8.0.595)'
@@ -150,12 +151,14 @@ expected=(
   "$DIST_DIR/libexec/kinect360-remold/ensure-v4l2-device.sh"
 )
 for file in "${expected[@]}"; do
-  [[ -x "$file" ]] || { echo "Missing expected build artifact: $file" >&2; exit 3; }
+  [[ -f "$file" ]] || { echo "Missing expected build artifact: $file" >&2; exit 3; }
+  chmod 0755 "$file" 2>/dev/null || true
+  [[ -x "$file" ]] || { echo "Build artifact is not executable: $file" >&2; exit 3; }
 done
 
 cat > "$DIST_DIR/BUILD-MANIFEST.txt" <<MANIFEST
 Kinect Xbox 360 Remold native Linux runtime
-Version: 1.0
+Version: 1
 Architecture: $ARCH
 Source: drivers/linux/source
 Build type: Release

@@ -225,8 +225,8 @@ class NuiDepthPersonSegmenter {
       if(mm<cfg.minDepthMm||mm>cfg.maxDepthMm)continue;int b=constrain((mm-cfg.minDepthMm)/cfg.bodyDepthBinMm,0,bins-1);hist[b]++;
       if(x>=w*.16f&&x<=w*.84f&&y>=h*.06f&&y<=h*.96f)central[b]++;
     }
-    // Multi-hypothesis depth segmentation: keep several strong depth modes instead
-    // of committing the entire tracker to the single largest histogram peak. This
+    // Multi-hypothesis depth segmentation retains several strong depth modes.
+    // The tracker is not committed to the single largest histogram peak. This
     // keeps the same person through partial occlusion and prevents a nearer bystander
     // from stealing identity merely because they occupy more depth pixels.
     double[] binScore=new double[bins];Arrays.fill(binScore,-Double.MAX_VALUE);

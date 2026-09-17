@@ -261,7 +261,7 @@ void SimpleFrameGenerator::ApplyDigitalFraming()
         std::memcpy(m_framedNv12.data(), m_latestNv12.data(), m_latestNv12.size());
         return;
     }
-    // Digital pan/vertical correction needs crop margin.  A small implicit crop
+    // Digital pan/vertical adjustment needs crop margin. A small implicit crop
     // makes a manual Pan useful even when the client has left Zoom at 1.0x.
     if ((pan != 0 || vertical != 0) && zoom < 1100) zoom = 1100;
 
@@ -713,14 +713,14 @@ void SimpleFrameGenerator::SmartEngineLoop()
                 LONG currentZoom=state.zoomPermille.load();
                 state.zoomPermille.store(CameraControls::ClampLong(RoundLong(currentZoom+(wantedZoom-currentZoom)*alpha),1000,limit));
 
-                // A small digital vertical correction hides the mechanical motor's coarse/slower movement.
+                // A small digital vertical adjustment smooths the mechanical motor's coarse motion.
                 LONG desiredVertical = CameraControls::ClampLong((controlledDy * 1200) / static_cast<LONG>(m_height/2), -650, 650);
                 LONG currentVertical = state.verticalCropPermille.load();
                 state.verticalCropPermille.store(CameraControls::ClampLong(RoundLong(currentVertical+(desiredVertical-currentVertical)*alpha),-650,650));
 
                 // FaceTracker remains the composition controller. The physical
                 // accelerometer is a low-authority feed-forward term: it measures
-                // a change in camera pitch relative to gravity and rejects base
+                // camera pitch relative to gravity and rejects base
                 // motion before the face has time to drift far from center.
                 double rawAccelCorrection = 0.0;
                 const bool physicalMotor = state.motorTransport.load() == static_cast<LONG>(Control::Transport::PhysicalMotor);

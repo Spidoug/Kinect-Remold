@@ -238,7 +238,7 @@ if (!$platformToolset) {
     throw "No installed x64 Visual C++ PlatformToolset was found under $($build.VS)."
 }
 
-# Select one coherent Windows SDK/WDK root instead of independently choosing
+# Select one coherent Windows SDK/WDK root for all toolchain components.
 # unrelated headers, libraries and packaging tools. This project contains no
 # authored kernel .sys, so KMDF/ntoskrnl development files are intentionally
 # not prerequisites; the build needs the x64 user-mode SDK plus InfVerif/Inf2Cat.
@@ -248,7 +248,7 @@ $ic = Get-Item -LiteralPath $wdk.Inf2Cat
 $wdkVersion = [string]$wdk.Version
 # WDKContentRoot is not a normal arbitrary directory property. Several WDK
 # .props/.targets files concatenate it directly with relative paths such as
-# "build\..." instead of using a path join. Preserve the native Windows Kits
+# Some WDK metadata contains native "build\..." paths. Preserve the Windows Kits
 # interface by always exposing a trailing directory separator to MSBuild.
 $wdkRoot = ([string]$wdk.Root).TrimEnd([char[]]@('\','/')) + '\'
 # Windows PowerShell 5.x native-process argument marshaling can misquote an

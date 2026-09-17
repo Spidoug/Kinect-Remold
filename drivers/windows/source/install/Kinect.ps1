@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [ValidateSet('Menu','Install','Status','OpenCamera','Tilt','StartupTilt','IpStatus','IpReset','IpToggle','RgbHqToggle','OpenStudio','Uninstall')]
     [string]$Action='Menu',
@@ -39,7 +39,7 @@ function Start-StandardUserProcess([string]$FilePath,[string]$Arguments='',[stri
     }
     # Shell.Application is brokered by the desktop shell.  When Explorer is
     # running as the normal interactive user this deliberately drops the
-    # elevated token instead of propagating administrator rights to Studio.
+    # elevated token while Studio remains non-elevated.
     $shell=New-Object -ComObject Shell.Application
     $shell.ShellExecute($FilePath,$Arguments,$WorkingDirectory,'open',1)
 }
@@ -63,7 +63,8 @@ function Pause-Menu{Write-Host '';[void](Read-Host 'Press Enter to continue')}
 function Header{
     Clear-Host
     Write-Host '============================================================' -ForegroundColor Cyan
-    Write-Host (" {0} v{1}" -f $Product.Name,$Product.Version) -ForegroundColor Cyan
+    Write-Host (" {0}" -f $Product.Name) -ForegroundColor Cyan
+    Write-Host (" Software version: {0}" -f $Product.Version) -ForegroundColor Cyan
     Write-Host '============================================================' -ForegroundColor Cyan
 }
 function Start-ElevatedAction([string]$RequestedAction){

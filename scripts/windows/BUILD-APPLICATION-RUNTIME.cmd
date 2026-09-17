@@ -5,7 +5,7 @@ set "SCRIPT=%ROOT%Build-ApplicationRuntime.ps1"
 set "RC=0"
 
 echo ============================================================
-echo  Kinect Xbox 360 Remold v1.0 - Application Runtime BUILD
+echo  Kinect Xbox 360 Remold - Application Runtime BUILD
 echo ============================================================
 echo.
 if not exist "%SCRIPT%" (

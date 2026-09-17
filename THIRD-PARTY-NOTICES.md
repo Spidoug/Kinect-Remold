@@ -20,7 +20,7 @@ The Windows virtual-camera implementation uses Microsoft Windows Camera material
 
 - `licenses/MIT-Microsoft-Windows-Camera.txt`
 
-The Windows native toolchain bootstrap also includes text snapshots of Microsoft Windows Driver Samples WDK WinGet/Visual Studio configuration files under `drivers/windows/source/build/`. They are retained as build metadata so V1 uses one reviewed toolchain configuration instead of downloading mutable configuration text at build time.
+The Windows native toolchain bootstrap also includes text snapshots of Microsoft Windows Driver Samples WDK WinGet/Visual Studio configuration files under `drivers/windows/source/build/`. They are retained as build metadata so Version 1 uses one pinned toolchain configuration instead of downloading mutable configuration text at build time.
 
 ## Microsoft Kinect audio firmware
 

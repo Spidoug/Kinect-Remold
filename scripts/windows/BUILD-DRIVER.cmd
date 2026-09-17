@@ -7,7 +7,7 @@ set "TARGET=%ROOT%\BUILD.cmd"
 set "RC=0"
 
 echo ============================================================
-echo  Kinect Xbox 360 Remold v1.0 - Driver build shortcut
+echo  Kinect Xbox 360 Remold - Driver build shortcut
 echo ============================================================
 echo.
 if not exist "%TARGET%" (
@@ -25,5 +25,5 @@ echo.
 if not "%RC%"=="0" echo BUILD FAILED - error code %RC%.
 if "%RC%"=="0" echo BUILD FINISHED SUCCESSFULLY.
 echo.
-if not defined REMOLD_CALLER pause
+if not defined REMOLD_CALLER if not "%REMOLD_NO_PAUSE%"=="1" pause
 exit /b %RC%

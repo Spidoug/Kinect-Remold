@@ -5,7 +5,8 @@ set "SCRIPT=%ROOT%Build-Studio.ps1"
 set "RC=0"
 
 echo ============================================================
-echo  SynKinect Studio v1.0 - BUILD
+echo  SynKinect Studio - BUILD
+echo  Software version: 1
 echo ============================================================
 echo.
 if not exist "%SCRIPT%" (
@@ -25,7 +26,7 @@ set "RC=%ERRORLEVEL%"
 :finish
 echo.
 if "%RC%"=="0" (echo STUDIO BUILD FINISHED SUCCESSFULLY.) else (echo STUDIO BUILD FAILED - error code %RC%.)
-if not defined REMOLD_BUILD_PARENT (
+if not defined REMOLD_BUILD_PARENT if not "%REMOLD_NO_PAUSE%"=="1" (
   echo This window will not close automatically.
   echo.
   pause

@@ -34,7 +34,8 @@ set "JAVA_VERSION="
 set "LAST_JAVA_EXE="
 set "LAST_JAVA_VERSION="
 
->"%LOG_FILE%" echo [%date% %time%] SynKinect Studio launcher 1.0
+>"%LOG_FILE%" echo [%date% %time%] SynKinect Studio launcher
+>>"%LOG_FILE%" echo Software version: 1
 
 rem V1 rule: use one Java 17+ runtime. A bundled runtime wins when present.
 call :try_java "%APP_HOME%\java\bin\java.exe"

@@ -1,4 +1,4 @@
-# Installation — V1
+# Installation — Version 1
 
 Native drivers are built from the source in this repository. The source archive does not include a native driver executable/package payload.
 
@@ -25,7 +25,7 @@ drivers\windows\binaries\KINECT.cmd
 
 and choose Install / Reinstall. `KINECT.cmd` itself stays at normal user integrity; UAC is requested only when an administrative operation begins. SynKinect Studio is never launched elevated.
 
-The build/signing flow must use the intended Windows signing environment. V1 does not require weakening Secure Boot, BCD or Code Integrity policy.
+The build/signing flow must use the intended Windows signing environment. Version 1 does not require weakening Secure Boot, BCD or Code Integrity policy.
 
 ## Linux x86-64
 
@@ -49,18 +49,6 @@ After installation, verify the selected transport model with:
 ```bash
 kinect360-remoldctl backend
 ```
-
-### Build Debian package
-
-```bash
-bash drivers/linux/packages/build-deb.sh amd64
-```
-
-The builder compiles the native runtime in a temporary directory and creates a new `.deb` under `drivers/linux/packages/output/`.
-
-### RPM-family distributions
-
-Use `drivers/linux/packages/rpm/kinect360-remold.spec` in the target RPM build environment. The spec compiles the current source during `%build`.
 
 ## SynKinect Studio
 

@@ -353,7 +353,7 @@ private:
   std::mutex&mu_;std::map<std::string,std::shared_ptr<CaptureVolumeController>>&controllers_;int server_=-1;std::atomic<bool>stopping_{false};std::thread thread_;
   std::shared_ptr<CaptureVolumeController> resolve(const char*raw,std::size_t cap){std::string requested(raw,strnlen(raw,cap));std::lock_guard<std::mutex>g(mu_);std::set<std::string>active;for(const auto&item:controllers_)active.insert(item.first);const std::string id=resolve_sensor_id(requested,active);if(id.empty())return {};auto it=controllers_.find(id);return it==controllers_.end()?std::shared_ptr<CaptureVolumeController>{}:it->second;}
   void serve(int fd){audio::ControlRequest q{};if(!unixio::read_exact(fd,&q,sizeof(q))||q.magic!=audio::kControlMagic||q.version!=audio::kVersion){::close(fd);return;}audio::ControlReply r{};auto controller=resolve(q.deviceId,sizeof(q.deviceId));if(!controller)r.result=-ENODEV;else switch(q.command){case audio::ControlCommand::GetState:break;case audio::ControlCommand::SetVolume:r.result=controller->set_volume(q.value);break;case audio::ControlCommand::SetMute:r.result=controller->set_mute(q.value!=0);break;default:r.result=-EINVAL;break;}if(r.result==0&&controller)r=controller->state();(void)unixio::write_all(fd,&r,sizeof(r));::close(fd);}
-  void loop(){while(!stopping_&&run){int fd=::accept4(server_,nullptr,nullptr,SOCK_CLOEXEC);if(fd<0){if(errno==EINTR)continue;if(stopping_||!run)break;continue;}std::thread([this,fd]{serve(fd);}).detach();}}
+  void loop(){while(!stopping_&&run){int fd=::accept4(server_,nullptr,nullptr,SOCK_CLOEXEC);if(fd<0){if(errno==EINTR)continue;if(stopping_||!run)break;continue;}unixio::set_io_timeout(fd,3000);std::thread([this,fd]{serve(fd);}).detach();}}
 };
 
 std::vector<PcmEndpoint> find_pcms(){

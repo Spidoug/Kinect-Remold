@@ -4,7 +4,7 @@
 namespace Kinect360RemoldControl {
 constexpr wchar_t kPipeName[] = L"\\\\.\\pipe\\Kinect360RemoldControl";
 constexpr uint32_t kMagic = 0x54434D52u; // "RMCT"
-// V1.0 exposes one current model-neutral control interface. Hardware-revision
+// Version 1 exposes one model-neutral control interface. Hardware-revision
 // details are private to the broker backends and never appear as commands.
 // Only this V1 ABI is implemented; no alternate control ABI is shipped.
 constexpr uint32_t kVersion = 1;

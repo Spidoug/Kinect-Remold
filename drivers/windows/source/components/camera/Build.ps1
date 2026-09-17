@@ -12,9 +12,8 @@ $CameraDriverSpec=$Product.DriverPackages|Where-Object{$_.Key -eq 'Camera'}|Sele
 if(!$CameraDriverSpec){throw 'Camera driver package definition is missing from Product.psd1.'}
 $Dist=Join-Path $Root 'dist'
 $Work=Join-Path $Root 'work'
-$Cache=Join-Path $Root 'cache'
-
 . (Join-Path $ProjectRoot 'build\Common.ps1')
+$Cache=Get-RemoldCacheRoot 'windows-driver\camera'
 
 if([string]::IsNullOrWhiteSpace($LogPath)){ $LogPath=Get-DefaultLogPath $Root }
 New-Item -ItemType Directory -Force (Split-Path -Parent $LogPath) | Out-Null
@@ -56,7 +55,7 @@ try {
     Write-Host 'Physical camera USB + bridge service: PASS' -ForegroundColor Green
 
     # 2. Native password-protected IP-camera runtime. It is deliberately user-mode
-    # and consumes the CameraBridge shared transport instead of opening USB/ScannerPort.
+    # and consumes the CameraBridge shared transport without opening USB/ScannerPort.
     Write-BuildStage '[2/4] Building native IP-camera runtime service...'
     $ipProj=Join-Path $Root 'source\ip-camera\Kinect360RemoldCameraIp.vcxproj'
     & $Tools.MSBuild $ipProj /m /t:Rebuild /p:Configuration=$Configuration /p:Platform=x64 /p:RemoldPlatformToolset=$($Tools.PlatformToolset) /p:PlatformToolset=$($Tools.PlatformToolset) /p:WindowsTargetPlatformVersion=$($Tools.WdkVersion)
@@ -84,23 +83,12 @@ try {
     $sampleRef=[string]$cameraDependency.Commit
     $sampleUrls=@(Get-PinnedDependencyArchiveUrls $Product 'WindowsCamera')
     $archive=Join-Path $Cache "Windows-Camera-$sampleRef.zip"
-    $extract=Join-Path $Work 'x'
-    $shortTree=Join-Path $Work 'wc'
+    $virtualRoot=$Work
+    $sample=Join-Path $virtualRoot 'vcam'
     Write-BuildStage 'Ensuring pinned Microsoft Windows-Camera archive is available...'
     Invoke-ResilientDownload $sampleUrls $archive -ZipArchive
-    try { Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force }
-    catch { Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue; throw "Could not extract '$archive'. The cached ZIP was removed; rerun BUILD.cmd. $($_.Exception.Message)" }
-    $top=Get-ChildItem -LiteralPath $extract -Directory | Select-Object -First 1
-    if(!$top){ throw 'Microsoft Windows-Camera archive did not contain a root directory.' }
-
-    # Keep the pinned Microsoft sample in a short path for MSVC path safety.
-    Move-Item -LiteralPath $top.FullName -Destination $shortTree
-    Remove-Item -LiteralPath $extract -Recurse -Force -ErrorAction SilentlyContinue
-    $virtualRoot=Join-Path $shortTree 'Samples\VirtualCamera'
-    $sample=Join-Path $virtualRoot 'VirtualCameraMediaSource'
-    $solution=Join-Path $virtualRoot 'VirtualCameraSample.sln'
+    Expand-ZipSubtreeClean $archive $sample 'Samples/VirtualCamera/VirtualCameraMediaSource'
     $vcamProj=Join-Path $sample 'VirtualCameraMediaSource.vcxproj'
-    Require-File $solution 'Microsoft VirtualCameraSample.sln'
     Require-File $vcamProj 'Microsoft VirtualCameraMediaSource.vcxproj'
     $activateCpp=Join-Path $sample 'VirtualCameraMediaSourceActivate.cpp'
     Require-File $activateCpp 'Microsoft VirtualCameraMediaSourceActivate.cpp'

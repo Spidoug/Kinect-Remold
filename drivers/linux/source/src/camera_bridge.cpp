@@ -442,6 +442,7 @@ class CameraNode {
         if (!running_.load() || !run.load()) break;
         unixio::retry_sleep(50); continue;
       }
+      unixio::set_io_timeout(connection, 5000);
       auto hub = hub_;
       std::thread([hub, connection] { client(hub, connection); }).detach();
     }

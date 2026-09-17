@@ -17,19 +17,17 @@ resolve_caller_home(){
 
 resolve_dist_dir(){
   if [[ -n "${REMOLD_DIST_DIR:-}" ]]; then printf '%s' "$REMOLD_DIST_DIR"; return 0; fi
-  local project_dist="$PROJECT_ROOT/.cache/linux-driver/dist/$ARCH"
-  if [[ -x "$project_dist/bin/kinect360-remoldctl" ]]; then printf '%s' "$project_dist"; return 0; fi
-  local caller_home state_file saved
+  local caller_home state_file saved cache_base cached
   caller_home="$(resolve_caller_home)"
   state_file="$caller_home/.local/state/kinect360-remold/linux-driver-dist-$ARCH.path"
   if [[ -r "$state_file" ]]; then
     IFS= read -r saved < "$state_file" || true
-    if [[ -n "$saved" && -x "$saved/bin/kinect360-remoldctl" ]]; then printf '%s' "$saved"; return 0; fi
+    if [[ -n "$saved" && -f "$saved/bin/kinect360-remoldctl" ]]; then printf '%s' "$saved"; return 0; fi
   fi
-  # Conventional cache fallback for builds made from a read-only source tree.
-  local cached="$caller_home/.cache/kinect360-remold/linux-driver/dist/$ARCH"
-  if [[ -x "$cached/bin/kinect360-remoldctl" ]]; then printf '%s' "$cached"; return 0; fi
-  printf '%s' "$project_dist"
+  cache_base="${XDG_CACHE_HOME:-$caller_home/.cache}"
+  cached="$cache_base/kinect360-remold/linux-driver/dist/$ARCH"
+  if [[ -f "$cached/bin/kinect360-remoldctl" ]]; then printf '%s' "$cached"; return 0; fi
+  printf '%s' "$cached"
 }
 
 DIST_DIR="$(resolve_dist_dir)"
@@ -53,12 +51,19 @@ require_distribution(){
     "$DIST_DIR/libexec/kinect360-remold/ensure-v4l2-device.sh"
   )
   for file in "${expected[@]}"; do
-    [[ -x "$file" ]] || {
+    [[ -f "$file" ]] || {
       echo "Missing compiled artifact: $file" >&2
       echo "Run drivers/linux/BUILD.sh first. INSTALL consumes the generated runtime distribution and does not compile or download build dependencies." >&2
       exit 3
     }
+    chmod 0755 "$file" 2>/dev/null || true
+    [[ -x "$file" ]] || {
+      echo "Compiled artifact is not executable: $file" >&2
+      exit 3
+    }
   done
+  local optional="$DIST_DIR/libexec/kinect360-remold/kinect360-remold-camera-ip"
+  if [[ -f "$optional" ]]; then chmod 0755 "$optional" 2>/dev/null || true; fi
 }
 
 install_runtime_deps(){
@@ -87,8 +92,8 @@ install_runtime_deps(){
 require_v4l2loopback(){
   local required="0.15.0" version="" first="" kernel_version=""
   kernel_version="$(uname -r | sed 's/[-+].*$//')"
-  # Upstream 0.15.3 contains the Linux 6.18+ safety fix; older supported
-  # kernels can use 0.15.0+, which is sufficient now that the runtime does not depend
+  # Upstream 0.15.3 contains the Linux 6.18+ safety behavior; older supported
+  # kernels can use 0.15.0+, which is sufficient because the runtime does not depend
   # on private client-usage events.
   if [[ "$(printf '%s\n%s\n' '6.18.0' "$kernel_version" | sort -V | head -n1)" == '6.18.0' ]]; then required="0.15.3"; fi
   command -v modinfo >/dev/null 2>&1 || { echo "kmod/modinfo is required." >&2; exit 2; }
@@ -226,7 +231,7 @@ systemctl disable kinect360-remold.target >/dev/null 2>&1 || true
 udevadm control --reload-rules
 udevadm trigger --subsystem-match=usb || true
 modprobe snd-usb-audio || true
-if ! /usr/libexec/kinect360-remold/ensure-v4l2-device.sh; then
+if ! bash /usr/libexec/kinect360-remold/ensure-v4l2-device.sh; then
   echo 'The Kinect virtual camera could not be created. Check DKMS status and Secure Boot module signing.' >&2
   exit 2
 fi
@@ -234,6 +239,6 @@ if [[ "$MODEL" != none ]]; then systemctl start kinect360-remold.target; fi
 USER_TO_ADD="${REMOLD_CALLER_USER:-${SUDO_USER:-}}"
 if [[ -n "$USER_TO_ADD" && "$USER_TO_ADD" != root ]]; then usermod -aG video,audio "$USER_TO_ADD" || true; fi
 
-echo "Kinect Xbox 360 Remold 1.0 installed from compiled distribution: $DIST_DIR"
+echo "Kinect Xbox 360 Remold installed from compiled distribution: $DIST_DIR"
 echo "Model policy: $MODEL (/etc/kinect360-remold/model.conf)"
 echo 'Reconnect the Kinect if needed, then run: kinect360-remoldctl status'

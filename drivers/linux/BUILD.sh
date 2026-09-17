@@ -3,6 +3,9 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$ROOT/../.." && pwd)"
+while IFS= read -r -d '' script; do
+  chmod u+x "$script" 2>/dev/null || true
+done < <(find "$PROJECT_ROOT" -type f -name '*.sh' -print0 2>/dev/null)
 choose_log_dir(){
   local candidate="$PROJECT_ROOT/logs"
   if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then printf '%s' "$candidate"; return 0; fi
