@@ -1,0 +1,14 @@
+# Kinect for Xbox 360 / models 1414 and 1473.
+# Hardware is owned by the privileged Remold services. uaccess keeps direct
+# runtime access available to the active desktop session without requiring
+# a logout after installation.
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02b0", MODE="0660", GROUP="video", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02c2", MODE="0660", GROUP="video", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02ae", MODE="0660", GROUP="video", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02ad", MODE="0660", GROUP="audio", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02bb", MODE="0660", GROUP="audio", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02c3", MODE="0660", GROUP="audio", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+
+# v4l2loopback devices are product output devices, not privileged hardware.
+# Grant the active desktop session immediate access just like the local IPC bus.
+SUBSYSTEM=="video4linux", ATTR{name}=="Kinect Xbox 360 Camera *", MODE="0660", GROUP="video", TAG+="uaccess"
