@@ -1,0 +1,26 @@
+[Unit]
+Description=Kinect Xbox 360 Remold SDK endpoint
+PartOf=kinect360-remold.target
+After=kinect360-remold-camera.service
+Wants=kinect360-remold-camera.service
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/kinect360-remold/kinect360-remold-sdk
+Restart=always
+RestartSec=1
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictSUIDSGID=true
+UMask=0022
+
+[Install]
+WantedBy=kinect360-remold.target
