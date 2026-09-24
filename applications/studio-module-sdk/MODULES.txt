@@ -1,0 +1,17 @@
+SynKinect Studio Module API
+Place trusted module JAR files in this directory.
+Each JAR must provide a ServiceLoader entry for:
+org.synkinect.studio.api.SynKinectStudioModule
+
+The public compile-time API is SynKinectStudio-module-api.jar in the runtime lib directory.
+
+Recommended module model:
+- implement ui(localeTag) and return StudioModuleUi
+- declare panels with StudioModulePanel
+- declare values with StudioModuleMetric
+- declare commands with StudioModuleAction and handle them in action(actionId)
+- use StudioModuleContext for devices, per-Kinect endpoints and backend workers
+- react to locale/device changes in contextChanged(StudioContextEvent)
+- return closeBlockReason(localeTag) only while shutdown must be blocked
+
+The Studio host owns the normal front-end layout, resizing, typography, localization-safe fitting and hit testing. Custom draw() code is only needed for specialized graphics.
