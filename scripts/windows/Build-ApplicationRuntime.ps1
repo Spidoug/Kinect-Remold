@@ -1,0 +1,255 @@
+﻿[CmdletBinding()]
+param(
+    [string]$JdkHome = ''
+)
+
+$ErrorActionPreference = 'Stop'
+$RepoRoot    = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$AppRoot     = Join-Path $RepoRoot 'binaries\windows\applications\SynKinectStudio'
+$LibRoot     = Join-Path $AppRoot 'lib'
+$RuntimeRoot = Join-Path $AppRoot 'java'
+$LogRoot     = Join-Path ([IO.Path]::GetTempPath()) 'Kinect360Remold\Build\logs'
+if(!(Test-Path -LiteralPath $LogRoot)){New-Item -ItemType Directory -Force $LogRoot|Out-Null}
+$LogPath     = Join-Path $LogRoot 'BUILD-APPLICATION-RUNTIME.log'
+
+function Require-File([string]$Path, [string]$Label) {
+    if (!(Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "$Label not found: $Path"
+    }
+}
+
+function Add-Candidate {
+    param(
+        [System.Collections.Generic.List[string]]$List,
+        [string]$Path
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) { return }
+    try {
+        $full = [System.IO.Path]::GetFullPath($Path)
+    } catch {
+        $full = $Path
+    }
+    if (!$List.Contains($full)) { $List.Add($full) }
+}
+
+function Find-JdkBin([string]$ExplicitHome) {
+    $candidates = New-Object 'System.Collections.Generic.List[string]'
+
+    if ($ExplicitHome) { Add-Candidate $candidates (Join-Path $ExplicitHome 'bin') }
+    if ($env:JDK_HOME) { Add-Candidate $candidates (Join-Path $env:JDK_HOME 'bin') }
+    if ($env:JAVA_HOME) { Add-Candidate $candidates (Join-Path $env:JAVA_HOME 'bin') }
+    $cacheRoot = $env:REMOLD_CACHE_ROOT
+    if ([string]::IsNullOrWhiteSpace($cacheRoot)) {
+        $localCacheRoot = $env:LOCALAPPDATA
+        if ([string]::IsNullOrWhiteSpace($localCacheRoot)) {$localCacheRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)}
+        if ([string]::IsNullOrWhiteSpace($localCacheRoot)) {$localCacheRoot = [IO.Path]::GetTempPath()}
+        $cacheRoot = Join-Path $localCacheRoot 'Kinect360Remold\Cache\windows'
+    }
+    $cachedJdkRoot = Join-Path ([IO.Path]::GetFullPath($cacheRoot)) 'studio\jdk'
+    if (Test-Path -LiteralPath $cachedJdkRoot -PathType Container) {
+        Get-ChildItem -LiteralPath $cachedJdkRoot -Directory -Filter 'microsoft-jdk-*' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            ForEach-Object { Add-Candidate $candidates (Join-Path $_.FullName 'bin') }
+    }
+
+    foreach ($toolName in @('jlink.exe', 'javac.exe', 'java.exe')) {
+        $cmd = Get-Command $toolName -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($cmd -and $cmd.Source) {
+            Add-Candidate $candidates (Split-Path -Parent $cmd.Source)
+        }
+    }
+
+    $vendorNames = @(
+        'Eclipse Adoptium',
+        'Java',
+        'Microsoft',
+        'Amazon Corretto',
+        'BellSoft',
+        'Zulu',
+        'Semeru'
+    )
+
+    foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        if (!$base) { continue }
+
+        foreach ($vendor in $vendorNames) {
+            $root = Join-Path $base $vendor
+            if (!(Test-Path -LiteralPath $root -PathType Container)) { continue }
+
+            Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -match '^(jdk|jdk-|zulu|corretto|semeru|liberica)' } |
+                Sort-Object LastWriteTime -Descending |
+                ForEach-Object { Add-Candidate $candidates (Join-Path $_.FullName 'bin') }
+        }
+    }
+
+    # Some JDK installers place their folders directly under Program Files.
+    foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        if (!$base -or !(Test-Path -LiteralPath $base -PathType Container)) { continue }
+        Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match '^(jdk-|jdk\d|zulu\d|corretto-)' } |
+            ForEach-Object { Add-Candidate $candidates (Join-Path $_.FullName 'bin') }
+    }
+
+    foreach ($bin in $candidates) {
+        $candidateJdkHome = Split-Path -Parent $bin
+        $modulePath = Join-Path $candidateJdkHome 'jmods'
+        $hasJlink = Test-Path -LiteralPath (Join-Path $bin 'jlink.exe') -PathType Leaf
+        $hasJava  = Test-Path -LiteralPath (Join-Path $bin 'java.exe')  -PathType Leaf
+        $hasModules = Test-Path -LiteralPath (Join-Path $modulePath 'java.base.jmod') -PathType Leaf
+        if ($hasJlink -and $hasJava -and $hasModules) {
+            return [pscustomobject]@{
+                Bin        = $bin
+                ModulePath = $modulePath
+                Candidates = @($candidates)
+            }
+        }
+    }
+
+    return [pscustomobject]@{
+        Bin        = $null
+        ModulePath = $null
+        Candidates = @($candidates)
+    }
+}
+
+function Write-ErrorLog {
+    param(
+        [System.Management.Automation.ErrorRecord]$ErrorRecord,
+        [string[]]$JdkCandidates = @()
+    )
+
+    $lines = New-Object 'System.Collections.Generic.List[string]'
+    $lines.Add('SynKinect BUILD-APPLICATION-RUNTIME error report')
+    $lines.Add(('Date: {0}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz')))
+    $lines.Add(('PowerShell: {0}' -f $PSVersionTable.PSVersion))
+    $lines.Add(('Repository: {0}' -f $RepoRoot))
+    $lines.Add(('JAVA_HOME: {0}' -f $env:JAVA_HOME))
+    $lines.Add(('JDK_HOME: {0}' -f $env:JDK_HOME))
+    $lines.Add('')
+    $lines.Add('ERROR:')
+    $lines.Add($ErrorRecord.Exception.Message)
+    $lines.Add('')
+
+    if ($ErrorRecord.InvocationInfo) {
+        $lines.Add(('At: {0}:{1}' -f $ErrorRecord.InvocationInfo.ScriptName, $ErrorRecord.InvocationInfo.ScriptLineNumber))
+        $lines.Add(('Command: {0}' -f $ErrorRecord.InvocationInfo.Line.Trim()))
+        $lines.Add('')
+    }
+
+    if ($JdkCandidates.Count -gt 0) {
+        $lines.Add('JDK locations checked:')
+        foreach ($item in $JdkCandidates) { $lines.Add(('  - {0}' -f $item)) }
+        $lines.Add('')
+    }
+
+    $lines.Add('DETAILS:')
+    $lines.Add(($ErrorRecord | Out-String).TrimEnd())
+
+    Set-Content -LiteralPath $LogPath -Value $lines -Encoding UTF8
+}
+
+$jdkCandidates = @()
+
+try {
+    if (!(Test-Path -LiteralPath $LibRoot -PathType Container)) {
+        throw "Application lib directory not found: $LibRoot"
+    }
+
+    $jdkResult = Find-JdkBin $JdkHome
+    $jdkCandidates = @($jdkResult.Candidates)
+    $jdkBin = $jdkResult.Bin
+    $modulePath = $jdkResult.ModulePath
+
+    if (!$jdkBin) {
+        $checked = if ($jdkCandidates.Count) {
+            "`nJDK locations checked:`n  - " + ($jdkCandidates -join "`n  - ")
+        } else {
+            "`nNo JDK candidate directory was found."
+        }
+
+        throw ("A complete Windows JDK was not found. jlink.exe and jmods/java.base.jmod are required.`n" +
+               "Install a complete 64-bit JDK 17 or newer, set JAVA_HOME/JDK_HOME, or run:`n" +
+               "  BUILD-APPLICATION-RUNTIME.cmd -JdkHome `"C:\Path\To\Your\JDK`"" + $checked)
+    }
+
+    $jlink = Join-Path $jdkBin 'jlink.exe'
+
+    $versionOutput = @(& $jlink --version 2>&1)
+    $versionCode = $LASTEXITCODE
+    $versionText = ($versionOutput | Select-Object -First 1).ToString().Trim()
+    if ($versionCode -ne 0) {
+        throw "Could not read the selected JDK version. jlink returned exit code $versionCode. Output: $($versionOutput -join ' ')"
+    }
+    if ($versionText -notmatch '^(\d+)') {
+        throw "Unexpected jlink version: $versionText"
+    }
+
+    $feature = [int]$Matches[1]
+    if ($feature -lt 17) {
+        throw "JDK $versionText is too old. Use JDK 17 or newer."
+    }
+
+    # The Studio runtime has one application JAR and one object model.
+    $preferredJar = Join-Path $LibRoot 'SynKinectStudio.jar'
+    Require-File $preferredJar 'SynKinectStudio.jar'
+    $jar = Get-Item -LiteralPath $preferredJar
+
+    Write-Host '============================================================' -ForegroundColor Cyan
+    Write-Host ' SynKinect minimal Windows Java runtime' -ForegroundColor Cyan
+    Write-Host '============================================================' -ForegroundColor Cyan
+    Write-Host "JDK bin: $jdkBin"
+    Write-Host "JDK version: $versionText"
+    Write-Host "Representative application: $($jar.Name)"
+    Write-Host ''
+
+    $modules = 'ALL-MODULE-PATH'
+    if ([string]::IsNullOrWhiteSpace($modulePath) -or !(Test-Path -LiteralPath (Join-Path $modulePath 'java.base.jmod') -PathType Leaf)) {
+        throw "The selected JDK does not contain the jmods module set required by jlink: $modulePath"
+    }
+    Write-Host 'Runtime modules: ALL-MODULE-PATH' -ForegroundColor Green
+    Write-Host "Runtime module path: $modulePath" -ForegroundColor DarkGray
+    Write-Host ''
+
+    if (Test-Path -LiteralPath $RuntimeRoot) {
+        Write-Host "Replacing existing runtime: $RuntimeRoot"
+        Remove-Item -LiteralPath $RuntimeRoot -Recurse -Force
+    }
+
+    $compression = if ($feature -ge 21) { 'zip-6' } else { '2' }
+    Write-Host "Creating runtime with jlink (compression=$compression)..."
+
+    $jlinkOutput = @(& $jlink --module-path $modulePath --add-modules $modules --strip-debug --no-header-files --no-man-pages "--compress=$compression" --output $RuntimeRoot 2>&1)
+    $jlinkCode = $LASTEXITCODE
+    if ($jlinkCode -ne 0) {
+        throw "jlink failed with exit code $jlinkCode.`n$($jlinkOutput -join [Environment]::NewLine)"
+    }
+
+    Require-File (Join-Path $RuntimeRoot 'bin\java.exe')  'java.exe'
+    Require-File (Join-Path $RuntimeRoot 'bin\javaw.exe') 'javaw.exe'
+
+    $bytes = (Get-ChildItem -LiteralPath $RuntimeRoot -Recurse -File | Measure-Object Length -Sum).Sum
+    $sizeMb = [Math]::Round($bytes / 1MB, 1)
+
+    if (Test-Path -LiteralPath $LogPath -PathType Leaf) {
+        Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Host ''
+    Write-Host "Portable runtime created: $RuntimeRoot" -ForegroundColor Green
+    Write-Host "Size: $sizeMb MB" -ForegroundColor Green
+    Write-Host 'SynKinect Studio uses this runtime for built-in and external modules.' -ForegroundColor Green
+    exit 0
+}
+catch {
+    try { Write-ErrorLog -ErrorRecord $_ -JdkCandidates $jdkCandidates } catch {}
+
+    Write-Host ''
+    Write-Host '============================================================' -ForegroundColor Red
+    Write-Host ' BUILD FAILED' -ForegroundColor Red
+    Write-Host '============================================================' -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host ''
+    Write-Host "Error report: $LogPath" -ForegroundColor Yellow
+    exit 1
+}

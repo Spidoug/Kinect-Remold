@@ -1,0 +1,31 @@
+# Final products are generated only beneath the root binaries/ tree.
+binaries/
+
+# Native compilation intermediates and local tool state.
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/Makefile
+**/.vs/
+**/x64/
+**/Debug/
+**/Release/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.exe
+*.sys
+*.cat
+*.pdb
+*.class
+*.jar
+
+# Logs, caches and temporary files.
+*.log
+*.tmp
+*.bak
+*~
+.cache/
