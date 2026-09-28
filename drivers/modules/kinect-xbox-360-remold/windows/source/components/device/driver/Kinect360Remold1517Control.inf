@@ -1,0 +1,53 @@
+; Kinect360Remold1517Control.inf
+; Kinect for Windows model 1517 dedicated motor/control transport.
+; Match the REV_0100 hardware ID exactly. PID 02C2 is also the model 1473
+; parent hub, so a PID-only match is intentionally forbidden.
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = Kinect360RemoldInternal
+ClassGuid   = {E0488A13-A670-423D-BD1B-168DDD4BD596}
+Provider    = %ProviderName%
+CatalogFile = Kinect360Remold1517Control.cat
+DriverVer   = 09/27/2026,1.0.0.0
+PnpLockdown = 1
+
+[ClassInstall32]
+AddReg = RemoldInternalClass.Registry
+
+[RemoldInternalClass.Registry]
+HKR,,,,%InternalClassName%
+HKR,,NoDisplayClass,,1
+
+[Manufacturer]
+%ProviderName% = Remold1517Models,NTamd64.10.0...19041
+
+[Remold1517Models.NTamd64.10.0...19041]
+%Remold1517.DeviceDesc% = Remold1517_Install, USB\VID_045E&PID_02C2&REV_0100
+
+[Remold1517_Install.NT]
+Include = winusb.inf
+Needs   = WINUSB.NT
+
+[Remold1517_Install.NT.Services]
+Include = winusb.inf
+Needs   = WINUSB.NT.Services
+
+[Remold1517_Install.NT.HW]
+AddReg = Remold1517.Interface,Remold1517.Power,Remold1517.Security
+
+[Remold1517.Interface]
+HKR,,DeviceInterfaceGUIDs,0x00010000,"{71D72413-E133-42B4-A5CE-66F4D2E38DFA}"
+
+[Remold1517.Power]
+HKR,,DeviceIdleEnabled,0x00010001,0
+HKR,,DefaultIdleState,0x00010001,0
+HKR,,SystemWakeEnabled,0x00010001,0
+
+[Remold1517.Security]
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGW;;;AU)"
+
+[Strings]
+ProviderName = "Douglas Santana (@spidoug)"
+InternalClassName = "Kinect Xbox 360 Internal"
+Remold1517.DeviceDesc = "Kinect for Windows 1517 Motor/Control"
