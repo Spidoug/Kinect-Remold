@@ -1,0 +1,26 @@
+# First-generation Kinect models 1414, 1473 and Kinect for Windows 1517.
+# Hardware is owned by the privileged Remold services. uaccess keeps direct
+# runtime access available to the active desktop session without requiring
+# a logout after installation.
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02b0", MODE="0660", GROUP="@REMOLD_VIDEO_GROUP@", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02c2", MODE="0660", GROUP="@REMOLD_VIDEO_GROUP@", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02ae", MODE="0660", GROUP="@REMOLD_VIDEO_GROUP@", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02bf", MODE="0660", GROUP="@REMOLD_VIDEO_GROUP@", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02ad", MODE="0660", GROUP="@REMOLD_AUDIO_GROUP@", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02be", MODE="0660", GROUP="@REMOLD_AUDIO_GROUP@", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02bb", MODE="0660", GROUP="@REMOLD_AUDIO_GROUP@", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+SUBSYSTEM=="usb", ATTR{idVendor}=="045e", ATTR{idProduct}=="02c3", MODE="0660", GROUP="@REMOLD_AUDIO_GROUP@", TAG+="uaccess", TAG+="systemd", ENV{SYSTEMD_WANTS}+="kinect360-remold.target"
+
+# v4l2loopback devices are product output devices, not privileged hardware.
+# Grant the active desktop session immediate access just like the local IPC bus.
+SUBSYSTEM=="video4linux", ATTR{name}=="Kinect Xbox 360 Camera *", MODE="0660", GROUP="@REMOLD_VIDEO_GROUP@", TAG+="uaccess"
+
+# Native Kinect audio is owned by the resident Remold AudioBridge. Prevent desktop
+# sound servers from racing the physical USB/UAC source; AudioBridge republishes
+# the four-channel stream through the product-owned snd-aloop capture endpoint.
+SUBSYSTEM=="sound", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02be", ENV{ACP_IGNORE}="1", ENV{PULSE_IGNORE}="1"
+SUBSYSTEM=="sound", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02bb", ENV{ACP_IGNORE}="1", ENV{PULSE_IGNORE}="1"
+SUBSYSTEM=="sound", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02c3", ENV{ACP_IGNORE}="1", ENV{PULSE_IGNORE}="1"
+
+# Friendly metadata for the Remold system-facing microphone card.
+SUBSYSTEM=="sound", KERNEL=="card*", ATTR{id}=="KinectRemold", ENV{ID_MODEL}="Kinect_Remold_Microphone_Array", ENV{ID_MODEL_FROM_DATABASE}="Kinect Remold Microphone Array", TAG+="uaccess"

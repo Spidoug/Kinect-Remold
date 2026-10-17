@@ -1,0 +1,9 @@
+{
+  "name": "Kinect Remold",
+  "version": 1,
+  "version_visibility": "metadata-only",
+  "platforms": [
+    "Windows",
+    "Linux"
+  ]
+}
