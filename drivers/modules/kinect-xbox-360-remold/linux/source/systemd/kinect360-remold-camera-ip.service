@@ -1,0 +1,41 @@
+[Unit]
+StartLimitIntervalSec=30
+StartLimitBurst=5
+Description=Kinect Remold - Xbox 360 authenticated IP camera
+PartOf=kinect360-remold.target
+After=kinect360-remold-camera.service network-online.target
+Wants=network-online.target
+Requires=kinect360-remold-camera.service
+
+[Service]
+WorkingDirectory=@REMOLD_STATE_DIR@
+Environment=REMOLD_STATE_DIR=@REMOLD_STATE_DIR@
+Type=simple
+User=@REMOLD_IP_USER@
+Group=@REMOLD_IP_GROUP@
+@REMOLD_VIDEO_GROUP_LINE@
+ExecStart=@REMOLD_LIBEXEC_DIR@/kinect360-remold-camera-ip
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+
+[Install]
+WantedBy=kinect360-remold.target
