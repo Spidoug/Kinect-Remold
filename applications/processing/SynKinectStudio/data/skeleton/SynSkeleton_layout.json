@@ -1,0 +1,15 @@
+{
+  "model": "SynSkeleton.onnx",
+  "input": {"name": "depth_metric", "shape": [1, 1, 240, 320], "units": "normalized metric depth"},
+  "outputs": ["keypoints", "segments", "endpoints"],
+  "keypoints": 58,
+  "body_keypoints": 16,
+  "hand_keypoints_each": 21,
+  "layout": [
+    "head", "nose", "earL", "earR",
+    "shoulderL", "shoulderR", "elbowL", "elbowR", "wristL", "wristR",
+    "hipL", "hipR", "kneeL", "kneeR", "ankleL", "ankleR",
+    "handL_0", "handL_1", "handL_2", "handL_3", "handL_4", "handL_5", "handL_6", "handL_7", "handL_8", "handL_9", "handL_10", "handL_11", "handL_12", "handL_13", "handL_14", "handL_15", "handL_16", "handL_17", "handL_18", "handL_19", "handL_20",
+    "handR_0", "handR_1", "handR_2", "handR_3", "handR_4", "handR_5", "handR_6", "handR_7", "handR_8", "handR_9", "handR_10", "handR_11", "handR_12", "handR_13", "handR_14", "handR_15", "handR_16", "handR_17", "handR_18", "handR_19", "handR_20"
+  ]
+}
