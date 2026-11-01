@@ -1,0 +1,22 @@
+[Unit]
+Description=Kinect Remold - Xbox One runtime
+After=local-fs.target systemd-udevd.service
+
+[Service]
+WorkingDirectory=@REMOLD_STATE_DIR@
+Environment=REMOLD_STATE_DIR=@REMOLD_STATE_DIR@
+Type=simple
+ExecStart=@REMOLD_LIBEXEC_DIR@/kinect-one-remold
+Restart=always
+RestartSec=1s
+RuntimeDirectory=kinect-one-remold
+RuntimeDirectoryMode=0755
+KillMode=control-group
+TimeoutStopSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
