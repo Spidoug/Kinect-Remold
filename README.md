@@ -4,16 +4,6 @@
 
 # Kinect Remold
 
-## Disconnect and reconnect timing
-
-The Windows and Linux drivers use the same short-failure policy for physical Kinect loss. A missing or stalled device is treated as disconnected within a maximum target window of about 3 seconds. Normal/depth frame watchdogs fire before that window, high-quality RGB is capped at 3 seconds, USB/pipe I/O used by the device runtimes is capped at 3 seconds, and the Studio removes a vanished device after a 3-second grace period. Discovery/reconnect polling runs several times per second so unplug/replug state changes are reflected promptly without long UI stalls.
-
-This 3-second policy applies to runtime device loss and stalled transport. Longer operation-specific waits that are not disconnect detection (for example installation, firmware preparation/download, recording policy, or physical actuator operations) keep their own bounded timing.
-
-## Build and validation scope
-
-The source distribution contains no top-level `tools` or `tests` directory. Numeric regression checks have passed for rigid-fit math (160 synthetic transformations), Turntable angular coverage (five scenarios), and audio/tracking configuration (nine checks). This does **not** establish measured reconstruction accuracy for Turntable or Fusion, TSDF volumetric accuracy, end-to-end ICP convergence, acoustic localization, Surveillance behavior, or ONNX inference. Required Processing/JOGL dependencies, ONNX model weights, and physical Kinect hardware were not available for the full validation. See [Functionality status](docs/FUNCTIONALITY-STATUS.md) and [tracking configuration](docs/TRACKING-MODES.md).
-
 ## A cross-generation runtime and Studio for Kinect sensors
 
 **Models 1414 + 1473 + 1517 · Kinect v2 / Xbox One · RGB · Depth · IR · Audio · Tilt/LED where hardware supports them · Multi-Kinect**
