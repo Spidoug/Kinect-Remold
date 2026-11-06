@@ -2,7 +2,9 @@
   <img src="docs/images/synkinect-studio-icon.png" width="112" alt="SynKinect Studio icon">
 </div>
 
+<div align="center">
 # Kinect Remold
+</div>
 
 ## A cross-generation runtime and Studio for Kinect sensors
 
