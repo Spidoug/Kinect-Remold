@@ -1,8 +1,5 @@
 <div align="center">
   <img src="docs/images/synkinect-studio-icon.png" width="112" alt="SynKinect Studio icon">
-</div>
-
-<div align="center">
 # Kinect Remold
 </div>
 
